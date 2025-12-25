@@ -65,6 +65,19 @@ st.markdown("""
     .cat-create { background-color: #34d399; } /* Lighter Green */
     .cat-other { background-color: #9ca3af; } /* Lighter Gray */
     
+    /* Buttons - Consistent Dark Theme */
+    div.stButton > button {
+        background-color: #21262d !important;
+        color: #ffffff !important;
+        border: 1px solid #30363d !important;
+        transition: background-color 0.2s;
+    }
+    div.stButton > button:hover {
+        background-color: #30363d !important; /* Slightly lighter on hover */
+        border-color: #8b949e !important;
+        color: #ffffff !important;
+    }
+    
     /* Progress Bar */
     .progress-wrapper {
         background-color: #21262d;
