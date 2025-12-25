@@ -37,25 +37,33 @@ st.markdown("""
     .brick {
         height: 40px;
         border-radius: 4px;
-        color: white !important;
+        color: #000000 !important; /* Black Text as requested */
         font-size: 0.85em;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 800; /* Bolder text */
+        font-weight: 800;
         cursor: help;
-        border: 1px solid rgba(255,255,255,0.2);
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* Stronger shadow */
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        border: 1px solid rgba(0,0,0,0.1);
+        text-shadow: none; /* Remove shadow for clean black text */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .brick:hover { opacity: 0.9; transform: translateY(-1px); }
     
-    /* Colors - Slightly darker for better text contrast */
-    .cat-science { background-color: #2563eb; } /* Blue */
-    .cat-art { background-color: #7c3aed; } /* Purple */
-    .cat-play { background-color: #ea580c; } /* Darker Orange */
-    .cat-create { background-color: #059669; } /* Green */
-    .cat-other { background-color: #4b5563; } /* Gray */
+    /* Expander Header - Make Black Text (requires light background) */
+    .streamlit-expanderHeader {
+        background-color: #f0f6fc !important;
+        color: #000000 !important;
+        border-radius: 8px;
+    }
+    .streamlit-expanderHeader p { color: #000000 !important; }
+    
+    /* Colors - Brightened for black text contrast */
+    .cat-science { background-color: #60a5fa; } /* Lighter Blue */
+    .cat-art { background-color: #a78bfa; } /* Lighter Purple */
+    .cat-play { background-color: #fb923c; } /* Lighter Orange */
+    .cat-create { background-color: #34d399; } /* Lighter Green */
+    .cat-other { background-color: #9ca3af; } /* Lighter Gray */
     
     /* Progress Bar */
     .progress-wrapper {
