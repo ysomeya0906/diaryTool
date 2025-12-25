@@ -118,7 +118,15 @@ def get_ai_advice(experience, feelings, ideas, tomorrow_plan):
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        return f"AI Error: {str(e)}"
+        error_msg = str(e)
+        try:
+            # Try to list available models to help debug
+            models = list(genai.list_models())
+            available_models = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+            debug_info = f" | Available models: {', '.join(available_models)}"
+            return f"AI Error: {error_msg}{debug_info}"
+        except Exception as list_err:
+            return f"AI Error: {error_msg} | Could not list models: {str(list_err)}"
 
 # --- Routes ---
 @app.route('/')
