@@ -3,3 +3,5 @@ gunicorn
 python-dotenv
 google-generativeai
 pandas
+gspread
+oauth2client
