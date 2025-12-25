@@ -1,3 +1,5 @@
-streamlit
+flask
+gunicorn
+python-dotenv
+google-generativeai
 pandas
-numpy
