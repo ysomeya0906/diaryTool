@@ -99,7 +99,7 @@ def get_ai_advice(experience, feelings, ideas, tomorrow_plan):
         return "AI API Key not found. Please configure GEMINI_API_KEY."
     
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-3-pro-preview')
         prompt = f"""
         あなたは就職活動中の学生をサポートするメンターAIです。
         以下の日記の内容を分析し、明日以降の生活や就活に活かせるアドバイス、成長の可視化、励ましの言葉をください。
