@@ -165,16 +165,47 @@ def load_data():
     try:
         rows = sheet.get_all_values()
         if not rows: return pd.DataFrame()
+        
         headers = rows[0]
         data = rows[1:]
-        df = pd.DataFrame(data, columns=headers)
         
-        # Normalize Headers
+        # Deduplicate headers before creating DataFrame
+        seen = {}
+        unique_headers = []
+        for h in headers:
+            clean_h = h.strip()
+            if clean_h in seen:
+                seen[clean_h] += 1
+                unique_headers.append(f"{clean_h}_{seen[clean_h]}")
+            else:
+                seen[clean_h] = 0
+                unique_headers.append(clean_h)
+        
+        df = pd.DataFrame(data, columns=unique_headers)
+        
+        # Normalize Headers (Title Case)
+        # Be careful not to re-introduce duplicates if 'date' and 'Date' existed and were handled above
+        # The deduplication above handles exact string matches.
+        # Now we want to normalize specific known columns.
+        
         cleaned_map = {}
+        existing_normalized = set()
+        
         for col in df.columns:
-            cleaned = col.strip().title()
+            # target name
+            cleaned = col.title()
             if cleaned == "Tomorrowplan": cleaned = "TomorrowPlan"
+            
+            # If this target name already exists in our new set, append index to avoid collision
+            original_cleaned = cleaned
+            counter = 1
+            while cleaned in existing_normalized:
+                cleaned = f"{original_cleaned}_{counter}"
+                counter += 1
+            
+            existing_normalized.add(cleaned)
             cleaned_map[col] = cleaned
+            
         df.rename(columns=cleaned_map, inplace=True)
         
         return df
