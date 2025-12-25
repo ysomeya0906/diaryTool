@@ -57,8 +57,31 @@ def load_data_df():
         return pd.DataFrame(columns=["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
     
     try:
-        data = sheet.get_all_records()
-        df = pd.DataFrame(data)
+        # Use get_all_values to have full control over headers
+        rows = sheet.get_all_values()
+        if not rows:
+             return pd.DataFrame(columns=["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
+        
+        # Assume first row is headers
+        headers = rows[0]
+        data = rows[1:]
+        
+        # Create DF with original headers
+        df = pd.DataFrame(data, columns=headers)
+        
+        # Normalize headers: Strip whitespace and Title Case (e.g. "date " -> "Date", "experience" -> "Experience")
+        # Mapping dict for specific known variations if needed
+        normalized_map = {}
+        for col in df.columns:
+            clean_col = col.strip().title() # date -> Date, tomorrowplan -> Tomorrowplan (careful with CamelCase)
+            
+            # Manual fixups for specific columns if Title() isn't enough
+            if clean_col == "Tomorrowplan": clean_col = "TomorrowPlan"
+            
+            normalized_map[col] = clean_col
+            
+        df.rename(columns=normalized_map, inplace=True)
+        
         return ensure_columns(df)
     except Exception as e:
         print(f"Error reading sheet: {e}")

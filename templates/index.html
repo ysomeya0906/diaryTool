@@ -142,7 +142,7 @@
                     card.className = 'card entry-card';
                     card.innerHTML = `
                         <div class="entry-header">
-                            <span class="entry-date">${entry.Date}</span>
+                            <span class="entry-date">${entry.Date || ''}</span>
                             <span class="entry-time">${entry.Timestamp ? entry.Timestamp.split(' ')[1].slice(0, 5) : ''}</span>
                         </div>
                         <div class="entry-body">
