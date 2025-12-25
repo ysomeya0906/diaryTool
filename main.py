@@ -6,136 +6,105 @@ import os
 import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import altair as alt
 
 # --- Config & Setup ---
 load_dotenv()
-st.set_page_config(page_title="Daily Growth Journal", page_icon="📓", layout="centered")
+st.set_page_config(page_title="Bricks - Daily Life Blocks", page_icon="🧱", layout="wide")
 
-# --- Custom CSS (Glassmorphism & Dark Mode) ---
+# --- Custom CSS ---
 st.markdown("""
 <style>
-    /* Global Style */
-    .stApp {
-        background-color: #0d1117;
-        color: #e6edf3;
-    }
+    /* Global */
+    .stApp { background-color: #0d1117; color: #e6edf3; }
     
     /* Inputs */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stDateInput>div>div>input {
-        background-color: #161b22;
-        color: #e6edf3;
-        border: 1px solid #30363d;
-        border-radius: 8px;
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div {
+        background-color: #161b22; color: #e6edf3; border: 1px solid #30363d;
     }
     
-    /* Cards (Container simulation) */
-    .css-1r6slb0, .css-12oz5g7 {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        padding: 20px;
-        border-radius: 12px;
+    /* Block Visuals */
+    .block-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 10px;
     }
-    
-    /* Highlight Box (Yesterday's Plan) */
-    .highlight-box {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        border-left: 4px solid #6c5ce7;
-    }
-    
-    /* History Card */
-    .history-card {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-    }
-    .history-date {
-        font-weight: bold;
-        color: #a29bfe;
-        font-size: 0.9em;
-    }
-    .history-time {
-        float: right;
-        color: #6e7681;
+    .brick {
+        height: 40px;
+        border-radius: 4px;
+        color: white;
         font-size: 0.8em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        cursor: help;
+        border: 1px solid rgba(255,255,255,0.1);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+    .brick:hover { opacity: 0.9; transform: translateY(-1px); }
+    
+    /* Colors */
+    .cat-science { background-color: #3b82f6; } /* Blue */
+    .cat-art { background-color: #8b5cf6; } /* Purple */
+    .cat-play { background-color: #f97316; } /* Orange */
+    .cat-create { background-color: #10b981; } /* Green */
+    .cat-other { background-color: #6b7280; } /* Gray */
+    
+    /* Progress Bar */
+    .progress-wrapper {
+        background-color: #30363d;
+        border-radius: 10px;
+        height: 20px;
+        width: 100%;
+        overflow: hidden;
+        margin: 10px 0;
+    }
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        transition: width 0.5s ease-in-out;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Config & Setup ---
-load_dotenv()
-st.set_page_config(page_title="Daily Growth Journal", page_icon="📓", layout="centered")
+# --- Category Config ---
+CATEGORIES = {
+    "理工学": "cat-science",
+    "作品鑑賞・体験": "cat-art",
+    "遊び": "cat-play",
+    "コンテンツ作成": "cat-create",
+    "その他": "cat-other"
+}
 
 # --- Helpers ---
 def get_config(key, default=None):
-    # Try st.secrets first
-    if key in st.secrets:
-        return st.secrets[key]
-    # Fallback to os.getenv
+    if key in st.secrets: return st.secrets[key]
     return os.getenv(key, default)
 
 GOOGLE_SHEET_NAME = get_config("GOOGLE_SHEET_NAME", "DiaryData")
 
 @st.cache_resource
 def get_gspread_client():
-    # Try getting JSON from secrets/env
     creds_json = get_config("GOOGLE_CREDENTIALS_JSON")
-    
-    # Special handling for Streamlit Secrets TOML format where it might be parsed already
-    # If user puts [gcp_service_account] in secrets.toml, st.secrets["gcp_service_account"] is a dict.
-    # But sticking to JSON string env var for compatibility is easier for migration.
-    
     creds_dict = None
-    
     if creds_json:
-        try:
-            creds_dict = json.loads(creds_json)
-        except json.JSONDecodeError:
-            st.error("Error decoding GOOGLE_CREDENTIALS_JSON. Make sure it is valid JSON.")
-            return None
+        try: creds_dict = json.loads(creds_json)
+        except: pass
     elif "gcp_service_account" in st.secrets:
-        # Support Streamlit's native dict support if they paste contents under [gcp_service_account]
         creds_dict = dict(st.secrets["gcp_service_account"])
 
     if not creds_dict:
-        # Debugging Info
-        debug_info = f"""
-        **Debug Info:**
-        - `st.secrets` keys found: `{list(st.secrets.keys())}`
-        - `os.environ` has `GOOGLE_CREDENTIALS_JSON`: `{bool(os.getenv('GOOGLE_CREDENTIALS_JSON'))}`
-        """
-        
-        st.error(f"""
-        ❌ **GSpread Credentials not found.**
-        
-        {debug_info}
-        
-        **For Streamlit Cloud:**
-        Go to App Settings > Secrets and add:
-        ```toml
-        GOOGLE_SHEET_NAME = "DiaryData"
-        GOOGLE_CREDENTIALS_JSON = '''
-        {{
-          "type": "service_account",
-          ... paste your JSON here ...
-        }}
-        '''
-        ```
-        """)
+        st.error("❌ GSpread Credentials not found. Check Secrets/Env.")
         return None
 
     try:
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        client = gspread.authorize(creds)
-        return client
+        return gspread.authorize(creds)
     except Exception as e:
-        st.error(f"Error connecting to Google Sheets: {e}")
+        st.error(f"Auth Error: {e}")
         return None
 
 def get_sheet():
@@ -146,12 +115,16 @@ def get_sheet():
             sheet = client.open(GOOGLE_SHEET_NAME).sheet1
         except gspread.SpreadsheetNotFound:
             sh = client.create(GOOGLE_SHEET_NAME)
-            sh.share(json.loads(GOOGLE_CREDENTIALS_JSON)['client_email'], perm_type='user', role='writer')
+            sh.share(json.loads(get_config("GOOGLE_CREDENTIALS_JSON"))['client_email'], perm_type='user', role='writer')
             sheet = sh.sheet1
         
-        # Ensure Headers
+        # New Schema Headers
+        headers = ["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "TotalBlocks", "Timestamp"]
         if not sheet.get_all_values():
-            sheet.append_row(["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
+            sheet.append_row(headers)
+        elif sheet.row_values(1) != headers:
+            # If headers mismatch, we assume migration needed or specific user action reset
+            pass
             
         return sheet
     except Exception as e:
@@ -165,166 +138,237 @@ def load_data():
     try:
         rows = sheet.get_all_values()
         if not rows: return pd.DataFrame()
-        
-        headers = rows[0]
-        data = rows[1:]
-        
-        # Deduplicate headers before creating DataFrame
-        seen = {}
-        unique_headers = []
-        for h in headers:
-            clean_h = h.strip()
-            if clean_h in seen:
-                seen[clean_h] += 1
-                unique_headers.append(f"{clean_h}_{seen[clean_h]}")
-            else:
-                seen[clean_h] = 0
-                unique_headers.append(clean_h)
-        
-        df = pd.DataFrame(data, columns=unique_headers)
-        
-        # Normalize Headers (Title Case)
-        # Be careful not to re-introduce duplicates if 'date' and 'Date' existed and were handled above
-        # The deduplication above handles exact string matches.
-        # Now we want to normalize specific known columns.
-        
-        cleaned_map = {}
-        existing_normalized = set()
-        
-        for col in df.columns:
-            # target name
-            cleaned = col.title()
-            if cleaned == "Tomorrowplan": cleaned = "TomorrowPlan"
-            
-            # If this target name already exists in our new set, append index to avoid collision
-            original_cleaned = cleaned
-            counter = 1
-            while cleaned in existing_normalized:
-                cleaned = f"{original_cleaned}_{counter}"
-                counter += 1
-            
-            existing_normalized.add(cleaned)
-            cleaned_map[col] = cleaned
-            
-        df.rename(columns=cleaned_map, inplace=True)
-        
-        return df
+        return pd.DataFrame(rows[1:], columns=rows[0])
     except Exception as e:
         st.error(f"Read Error: {e}")
         return pd.DataFrame()
 
-def get_yesterday_plan(date_obj):
-    df = load_data()
-    if df.empty: return None
-    try:
-        yesterday = date_obj - timedelta(days=1)
-        yesterday_str = yesterday.strftime("%Y-%m-%d")
-        # Ensure Date column converted to string for comparison matches
-        row = df[df['Date'].astype(str) == yesterday_str]
-        if not row.empty:
-            return row.iloc[0].get('TomorrowPlan')
-    except:
-        pass
-    return None
-
-def save_entry(date, exp, feel, ideas, plan):
+def save_daily_record(date, blocks, new_ideas, funny_episodes):
     sheet = get_sheet()
     if not sheet: return False
     try:
+        # Serialize blocks to JSON
+        blocks_json = json.dumps(blocks, ensure_ascii=False)
+        total_blocks = sum(b['count'] for b in blocks)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # simple append
-        sheet.append_row([str(date), exp, feel, ideas, plan, "", timestamp])
-        # Clear cache so new data appears immediately
+        
+        # Check if date exists (Update logic)
+        try:
+            cell = sheet.find(str(date), in_column=1)
+            if cell:
+                # Update existing row
+                sheet.update_cell(cell.row, 2, blocks_json)
+                sheet.update_cell(cell.row, 3, new_ideas)
+                sheet.update_cell(cell.row, 4, funny_episodes)
+                sheet.update_cell(cell.row, 5, total_blocks)
+                sheet.update_cell(cell.row, 6, timestamp)
+            else:
+                # Append new
+                sheet.append_row([str(date), blocks_json, new_ideas, funny_episodes, total_blocks, timestamp])
+        except gspread.CellNotFound:
+             sheet.append_row([str(date), blocks_json, new_ideas, funny_episodes, total_blocks, timestamp])
+        
         st.cache_data.clear()
         return True
     except Exception as e:
         st.error(f"Save Error: {e}")
         return False
 
-# --- UI Layout ---
-st.title("Daily Growth Journal")
+# --- Session State ---
+if 'temp_blocks' not in st.session_state:
+    st.session_state.temp_blocks = []
 
-# --- Sidebar: Database Management ---
-with st.sidebar:
-    st.header("⚙️ Database Settings")
-    st.warning("スプレッドシートの状態がおかしい（データが表示されない・列がずれる）場合は、以下のボタンで初期化してください。")
-    if st.button("データベースをリセット (全削除 & 修復)"):
-        sheet = get_sheet()
-        if sheet:
-            try:
-                sheet.clear() # Clear all data
-                sheet.append_row(["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
-                st.cache_data.clear() # Clear cache
-                st.success("✅ データベースを初期化しました！正しく動作するはずです。")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error resetting: {e}")
+# --- Apps ---
+tab_record, tab_list, tab_class = st.tabs(["📝 記録 (Record)", "🧱 一覧 (List)", "📊 分類 (Stats)"])
 
-tab1, tab2 = st.tabs(["📝 Input", "📚 History"])
-
-with tab1:
-    date_val = st.date_input("Date", datetime.now())
+# === TAB 1: RECORD ===
+with tab_record:
+    st.header("今日のブロックを積み上げる")
     
-    # Yesterday's Plan
-    y_plan = get_yesterday_plan(date_val)
-    if y_plan:
+    col_date, col_prog = st.columns([1, 2])
+    with col_date:
+        rec_date = st.date_input("日付選択", datetime.now())
+    
+    # Progress Calculation
+    current_total = sum(b['count'] for b in st.session_state.temp_blocks)
+    target = 24
+    progress_pct = min(current_total / target, 1.0) * 100
+    
+    with col_prog:
+        st.write(f"**Progress:** {current_total} / {target} Blocks")
         st.markdown(f"""
-        <div class="highlight-box">
-            <b><i class="fas fa-history"></i> 昨日の「明日の予定」</b><br>
-            {y_plan}
+        <div class="progress-wrapper">
+            <div class="progress-fill" style="width: {progress_pct}%;"></div>
         </div>
         """, unsafe_allow_html=True)
-    
-    with st.form("diary_form"):
-        exp = st.text_area("1. 経験したこと", placeholder="今日あった出来事は？")
-        feel = st.text_area("2. 感じたこと・気づいたこと", placeholder="どう感じましたか？")
-        ideas = st.text_area("3. 新しいアイデア", placeholder="思いついたことは？")
-        plan = st.text_area("4. 明日の予定", placeholder="明日は何をする？")
-        
-        submitted = st.form_submit_button("記録する")
-        
-        if submitted:
-            if save_entry(date_val, exp, feel, ideas, plan):
-                st.success("✅ 記録しました！履歴タブを確認してください。")
-            else:
-                st.error("保存に失敗しました。")
+        if current_total < target:
+            st.caption(f"あと {target - current_total} ブロック！ (約 {(target - current_total)*30/60:.1f} 時間)")
+        else:
+            st.success("🎉 目標達成！素晴らしいです！")
 
-with tab2:
-    st.header("History")
-    if st.button("Reload Data"):
-        st.cache_data.clear()
-        st.rerun()
-        
-    df = load_data()
+    st.markdown("---")
     
-    # Debug view to help user diagnose
-    with st.expander("Show Raw Data Table (Debug)"):
-        st.dataframe(df)
-        
-    if not df.empty and 'Date' in df.columns:
+    # Block Input Form
+    with st.expander("🧱 ブロックを追加", expanded=True):
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            cat = st.selectbox("分類", list(CATEGORIES.keys()))
+            count = st.number_input("ブロック数 (1ブロック=30分)", min_value=1, value=1)
+        with c2:
+            title = st.text_input("したこと (タイトル)")
+            reflection = st.text_area("感想・気づき", height=100)
+            
+        if st.button("＋ 追加", type="primary"):
+            if title:
+                st.session_state.temp_blocks.append({
+                    "category": cat,
+                    "title": title,
+                    "count": count,
+                    "reflection": reflection
+                })
+                st.toast(f"「{title}」を追加しました")
+            else:
+                st.error("タイトルを入力してください")
+
+    # Current List Display
+    if st.session_state.temp_blocks:
+        st.subheader("積まれたブロック")
+        for i, b in enumerate(st.session_state.temp_blocks):
+            css_class = CATEGORIES.get(b['category'], 'cat-other')
+            col_b1, col_b2 = st.columns([4, 1])
+            with col_b1:
+                st.markdown(f"""
+                <div style="border-left: 5px solid #ccc; padding-left: 10px; margin-bottom: 5px;">
+                    <span class="brick {css_class}" style="display:inline-block; width:100px; height:20px; font-size:0.7em;">{b['category']}</span>
+                    <strong>{b['title']}</strong> ({b['count']} blocks) <br>
+                    <small style="color:#aaa;">{b['reflection']}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_b2:
+                if st.button("削除", key=f"del_{i}"):
+                    st.session_state.temp_blocks.pop(i)
+                    st.rerun()
+
+    st.markdown("---")
+    
+    # Final Reflections
+    st.subheader("1日のまとめ")
+    new_ideas = st.text_area("💡 新しいアイデア", placeholder="今日思いついたことは？")
+    funny_ep = st.text_area("🤣 面白エピソード", placeholder="話のネタになりそうなことは？")
+    
+    if st.button("✅ 完了 (保存する)", type="primary", use_container_width=True):
+        if st.session_state.temp_blocks:
+            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep):
+                st.success("保存しました！")
+                st.session_state.temp_blocks = [] # Clear only on success
+                st.balloons()
+            else:
+                st.error("保存に失敗しました")
+        else:
+            st.warning("ブロックがありません")
+
+# === TAB 2: LIST ===
+with tab_list:
+    st.header("積み上げの記録")
+    if st.button("Reload Data"): st.cache_data.clear()
+    
+    df = load_data()
+    if not df.empty:
         df = df.sort_values(by="Date", ascending=False)
         
         for index, row in df.iterrows():
-            ts = row.get('Timestamp', '')
-            time_only = ts.split(' ')[1][:5] if ' ' in ts else ''
+            date_str = row['Date']
+            try:
+                blocks = json.loads(row['BlocksJSON'])
+            except:
+                blocks = []
             
-            st.markdown(f"""
-            <div class="history-card">
-                <div style="margin-bottom:8px;">
-                    <span class="history-date">{row.get('Date')}</span>
-                    <span class="history-time">{time_only}</span>
-                </div>
-                <div style="font-size:0.95em;">
-                    <strong>Exp:</strong> {str(row.get('Experience'))[:50]}...<br>
-                    <strong>Plan:</strong> {row.get('TomorrowPlan')}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # Render Row
+            st.markdown(f"### {date_str}")
             
-            with st.expander(f"詳細: {row.get('Date')}"):
-                st.write("**経験したこと:**", row.get('Experience'))
-                st.write("**感じたこと:**", row.get('Feelings'))
-                st.write("**アイデア:**", row.get('Ideas'))
-                st.write("**明日の予定:**", row.get('TomorrowPlan'))
+            # Visual Stack
+            html_blocks = '<div class="block-container">'
+            for b in blocks:
+                css = CATEGORIES.get(b['category'], 'cat-other')
+                # Render width proportional to count? Or repeat blocks?
+                # User asked for "stacked blocks". Let's show separate bricks for each count or one wide brick?
+                # "積み上げて" -> Let's show 1 unit per count for visually stacking feeling
+                for _ in range(int(b['count'])):
+                    html_blocks += f'<div class="brick {css}" title="{b["title"]}: {b["reflection"]}" style="width:30px;"></div>'
+            html_blocks += '</div>'
+            st.markdown(html_blocks, unsafe_allow_html=True)
+            
+            # Details Expander
+            with st.expander(f"詳細: {len(blocks)} Activities"):
+                for b in blocks:
+                    st.write(f"**[{b['category']}] {b['title']}** ({b['count']})")
+                    st.caption(b['reflection'])
+                if row.get('NewIdeas'):
+                    st.info(f"💡 **Idea:** {row['NewIdeas']}")
+                if row.get('FunnyEpisodes'):
+                    st.success(f"🤣 **Episode:** {row['FunnyEpisodes']}")
+            st.markdown("---")
     else:
-        st.info("データがありません。")
+        st.info("データがありません")
+
+# === TAB 3: CLASSIFICATION ===
+with tab_class:
+    st.header("分類・分析")
+    
+    df_c = load_data()
+    if not df_c.empty:
+        # Process Data for Stats
+        all_blocks = []
+        for idx, row in df_c.iterrows():
+            try:
+                bs = json.loads(row['BlocksJSON'])
+                for b in bs:
+                    b['Date'] = row['Date']
+                    all_blocks.append(b)
+            except: pass
+            
+        if all_blocks:
+            df_blocks = pd.DataFrame(all_blocks)
+            
+            # Filter
+            selected_cat = st.selectbox("カテゴリを絞り込む", ["All"] + list(CATEGORIES.keys()) + ["新しいアイデア", "面白エピソード"])
+            
+            if selected_cat in list(CATEGORIES.keys()):
+                filtered = df_blocks[df_blocks['category'] == selected_cat]
+                st.metric(f"Total Blocks ({selected_cat})", filtered['count'].sum())
+                st.dataframe(filtered[['Date', 'title', 'count', 'reflection']])
+            
+            elif selected_cat == "All":
+                # Aggregate by Category
+                stats = df_blocks.groupby("category")['count'].sum().reset_index()
+                chart = alt.Chart(stats).mark_bar().encode(
+                    x='category',
+                    y='count',
+                    color=alt.Color('category', scale=alt.Scale(
+                        domain=list(CATEGORIES.keys()),
+                        range=['#3b82f6', '#8b5cf6', '#f97316', '#10b981', '#6b7280']
+                    ))
+                )
+                st.altair_chart(chart, use_container_width=True)
+                st.dataframe(df_blocks)
+            
+            elif selected_cat in ["新しいアイデア", "面白エピソード"]:
+                col_name = "NewIdeas" if selected_cat == "新しいアイデア" else "FunnyEpisodes"
+                # Filter rows where col is not empty
+                res = df_c[df_c[col_name] != ""][['Date', col_name]]
+                st.table(res)
+
+    else:
+        st.warning("データ不足です")
+
+# --- Sidebar Reset (Maintained) ---
+with st.sidebar:
+    st.markdown("---")
+    if st.button("⚠️ DB Reset (Bricks Schema)"):
+        s = get_sheet()
+        if s:
+            s.clear()
+            s.append_row(["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "TotalBlocks", "Timestamp"])
+            st.cache_data.clear()
+            st.success("Reset Complete for Bricks!")
+            st.rerun()
