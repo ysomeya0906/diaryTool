@@ -114,11 +114,6 @@ st.markdown("""
         margin: 10px 0;
         border: 1px solid #30363d;
     }
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-        transition: width 0.5s ease-in-out;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -261,8 +256,11 @@ with tab_record:
 
     st.markdown("---")
     
+    st.markdown("---")
+    
     # Block Input Form (Direct Display)
     st.subheader("🧱 ブロックを追加")
+    
     c1, c2 = st.columns([1, 1])
     with c1:
         cat = st.selectbox("分類", list(CATEGORIES.keys()))
