@@ -19,31 +19,38 @@ st.markdown("""
     .stApp { background-color: #0d1117; color: #ffffff; }
     p, h1, h2, h3, h4, h5, h6, li, span { color: #ffffff !important; }
     
-    /* Popovers (Dropdowns, Tooltips) - Dark Theme */
-    /* Target the specific menu container */
-    div[data-baseweb="menu"] {
-        background-color: #161b22 !important; /* Dark background */
-        border: 1px solid #30363d !important;
+    /* Popovers (Dropdowns, Tooltips) - FORCE READABILITY (Black Text / White BG) */
+    /* We are prioritizing readability because the dark mode override was failing */
+    
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] > div,
+    div[data-baseweb="menu"],
+    div[role="listbox"] {
+        background-color: #ffffff !important;
     }
-    /* Target items inside the menu */
-    div[data-baseweb="menu"] * {
-        color: #ffffff !important; /* White text */
-        background-color: transparent !important; /* Let container bg show through, helps with hover effects usually */
+    
+    /* Target individual options */
+    li[role="option"],
+    li[data-baseweb="option"],
+    div[data-baseweb="popover"] span, 
+    div[data-baseweb="popover"] div {
+        color: #000000 !important;
+        background-color: #ffffff !important;
     }
-    /* Fix for specific list items to ensure they render nicely */
-    li[data-baseweb="option"] {
-         color: #ffffff !important;
-    }
-    /* Hover state for options (difficult to target perfectly without specific classes, but this helps) */
-    li[data-baseweb="option"]:hover, li[data-baseweb="option"]:focus {
-        background-color: #30363d !important;
+    
+    /* Hover state */
+    li[role="option"]:hover,
+    li[data-baseweb="option"]:hover,
+    li[role="option"]:focus,
+    li[data-baseweb="option"]:focus {
+        background-color: #e2e8f0 !important; /* Light Gray */
+        color: #000000 !important;
     }
 
-    /* General Popover overrides */
-    div[data-baseweb="popover"] {
-        background-color: #161b22 !important;
-        color: #ffffff !important;
-        border: 1px solid #30363d;
+    /* Selected state checkmark/icon */
+    li[role="option"] svg,
+    li[data-baseweb="option"] svg {
+        fill: #000000 !important;
     }
     
     /* Inputs */
