@@ -244,6 +244,22 @@ def save_entry(date, exp, feel, ideas, plan):
 # --- UI Layout ---
 st.title("Daily Growth Journal")
 
+# --- Sidebar: Database Management ---
+with st.sidebar:
+    st.header("⚙️ Database Settings")
+    st.warning("スプレッドシートの状態がおかしい（データが表示されない・列がずれる）場合は、以下のボタンで初期化してください。")
+    if st.button("データベースをリセット (全削除 & 修復)"):
+        sheet = get_sheet()
+        if sheet:
+            try:
+                sheet.clear() # Clear all data
+                sheet.append_row(["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
+                st.cache_data.clear() # Clear cache
+                st.success("✅ データベースを初期化しました！正しく動作するはずです。")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error resetting: {e}")
+
 tab1, tab2 = st.tabs(["📝 Input", "📚 History"])
 
 with tab1:
