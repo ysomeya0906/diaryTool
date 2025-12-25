@@ -1,163 +1,222 @@
-import os
-import json
+import streamlit as st
+import pandas as pd
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import os
+import json
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify
-import pandas as pd
 from dotenv import load_dotenv
 
+# --- Config & Setup ---
 load_dotenv()
+st.set_page_config(page_title="Daily Growth Journal", page_icon="📓", layout="centered")
 
-app = Flask(__name__)
-
-# --- Configuration ---
-GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "DiaryData")
-
-# --- Google Sheets Helper ---
-def get_sheet():
-    if not GOOGLE_CREDENTIALS_JSON:
-        print("Error: GOOGLE_CREDENTIALS_JSON not found.")
-        return None
+# --- Custom CSS (Glassmorphism & Dark Mode) ---
+st.markdown("""
+<style>
+    /* Global Style */
+    .stApp {
+        background-color: #0d1117;
+        color: #e6edf3;
+    }
     
+    /* Inputs */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stDateInput>div>div>input {
+        background-color: #161b22;
+        color: #e6edf3;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+    }
+    
+    /* Cards (Container simulation) */
+    .css-1r6slb0, .css-12oz5g7 {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 20px;
+        border-radius: 12px;
+    }
+    
+    /* Highlight Box (Yesterday's Plan) */
+    .highlight-box {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border-left: 4px solid #6c5ce7;
+    }
+    
+    /* History Card */
+    .history-card {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+    }
+    .history-date {
+        font-weight: bold;
+        color: #a29bfe;
+        font-size: 0.9em;
+    }
+    .history-time {
+        float: right;
+        color: #6e7681;
+        font-size: 0.8em;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- Helpers ---
+GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "DiaryData")
+GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
+
+@st.cache_resource
+def get_gspread_client():
+    if not GOOGLE_CREDENTIALS_JSON:
+        st.error("GSpread Credentials not found.")
+        return None
     try:
-        # Parse JSON from string (Render Env Var) or file
         creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
-        
-        # Open sheet
+        return client
+    except Exception as e:
+        st.error(f"Error connecting to Google Sheets: {e}")
+        return None
+
+def get_sheet():
+    client = get_gspread_client()
+    if not client: return None
+    try:
         try:
             sheet = client.open(GOOGLE_SHEET_NAME).sheet1
         except gspread.SpreadsheetNotFound:
-            print(f"Sheet '{GOOGLE_SHEET_NAME}' not found. Creating...")
             sh = client.create(GOOGLE_SHEET_NAME)
-            sh.share(creds_dict['client_email'], perm_type='user', role='writer')
+            sh.share(json.loads(GOOGLE_CREDENTIALS_JSON)['client_email'], perm_type='user', role='writer')
             sheet = sh.sheet1
-
-        # Ensure headers
-        headers = ["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"]
+        
+        # Ensure Headers
         if not sheet.get_all_values():
-            sheet.append_row(headers)
-        elif sheet.row_values(1) != headers:
-            # If headers are missing or wrong in row 1, maybe prepend? 
-            # For safety, let's just assume if not empty, it's fine or user manages it.
-            pass
+            sheet.append_row(["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
             
         return sheet
     except Exception as e:
-        print(f"GSpread Error: {e}")
+        st.error(f"Sheet Error: {e}")
         return None
 
-def load_data_df():
+def load_data():
     sheet = get_sheet()
-    if not sheet:
-        return pd.DataFrame(columns=["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
-    
+    if not sheet: return pd.DataFrame()
     try:
-        # Use get_all_values to have full control over headers
         rows = sheet.get_all_values()
-        if not rows:
-             return pd.DataFrame(columns=["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
-        
-        # Assume first row is headers
+        if not rows: return pd.DataFrame()
         headers = rows[0]
         data = rows[1:]
-        
-        # Create DF with original headers
         df = pd.DataFrame(data, columns=headers)
         
-        # Normalize headers: Strip whitespace and Title Case (e.g. "date " -> "Date", "experience" -> "Experience")
-        # Mapping dict for specific known variations if needed
-        normalized_map = {}
+        # Normalize Headers
+        cleaned_map = {}
         for col in df.columns:
-            clean_col = col.strip().title() # date -> Date, tomorrowplan -> Tomorrowplan (careful with CamelCase)
-            
-            # Manual fixups for specific columns if Title() isn't enough
-            if clean_col == "Tomorrowplan": clean_col = "TomorrowPlan"
-            
-            normalized_map[col] = clean_col
-            
-        df.rename(columns=normalized_map, inplace=True)
+            cleaned = col.strip().title()
+            if cleaned == "Tomorrowplan": cleaned = "TomorrowPlan"
+            cleaned_map[col] = cleaned
+        df.rename(columns=cleaned_map, inplace=True)
         
-        return ensure_columns(df)
+        return df
     except Exception as e:
-        print(f"Error reading sheet: {e}")
-        return pd.DataFrame(columns=["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"])
+        st.error(f"Read Error: {e}")
+        return pd.DataFrame()
 
-def ensure_columns(df):
-    required = ["Date", "Experience", "Feelings", "Ideas", "TomorrowPlan", "Advice", "Timestamp"]
-    for col in required:
-        if col not in df.columns:
-            df[col] = None
-    return df
-
-def get_yesterday_plan(today_date_str):
-    df = load_data_df()
-    if df.empty:
-        return None
-    
+def get_yesterday_plan(date_obj):
+    df = load_data()
+    if df.empty: return None
     try:
-        today = datetime.strptime(today_date_str, "%Y-%m-%d")
-        yesterday = today - timedelta(days=1)
+        yesterday = date_obj - timedelta(days=1)
         yesterday_str = yesterday.strftime("%Y-%m-%d")
-        
-        # Filter (Dataframe operation)
         row = df[df['Date'] == yesterday_str]
         if not row.empty:
-            # Safe access in case column doesn't exist yet
-            return row.iloc[0].get('TomorrowPlan', None)
-    except Exception as e:
-        print(f"Error getting yesterday plan: {e}")
+            return row.iloc[0].get('TomorrowPlan')
+    except:
+        pass
     return None
 
-# --- Routes ---
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/api/yesterday_plan')
-def api_yesterday_plan():
-    date_str = request.args.get('date')
-    if not date_str:
-        return jsonify({"plan": None})
-    plan = get_yesterday_plan(date_str)
-    return jsonify({"plan": plan})
-
-@app.route('/api/save', methods=['POST'])
-def save_entry():
-    data = request.json
-    date = data.get('date')
-    
-    experience = data.get('experience')
-    feelings = data.get('feelings')
-    ideas = data.get('ideas')
-    tomorrow_plan = data.get('tomorrow_plan')
-    
-    advice = "" # AI removed
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+def save_entry(date, exp, feel, ideas, plan):
     sheet = get_sheet()
-    if sheet:
-        try:
-            row = [date, experience, feelings, ideas, tomorrow_plan, advice, timestamp]
-            sheet.append_row(row)
-        except Exception as e:
-            return jsonify({"status": "error", "message": str(e)})
-    else:
-        return jsonify({"status": "error", "message": "Database (Sheet) unavailable"})
+    if not sheet: return False
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # simple append
+        sheet.append_row([str(date), exp, feel, ideas, plan, "", timestamp])
+        return True
+    except Exception as e:
+        st.error(f"Save Error: {e}")
+        return False
+
+# --- UI Layout ---
+st.title("Daily Growth Journal")
+
+tab1, tab2 = st.tabs(["📝 Input", "📚 History"])
+
+with tab1:
+    date_val = st.date_input("Date", datetime.now())
     
-    return jsonify({"status": "success"})
+    # Yesterday's Plan
+    y_plan = get_yesterday_plan(date_val)
+    if y_plan:
+        st.markdown(f"""
+        <div class="highlight-box">
+            <b><i class="fas fa-history"></i> 昨日の「明日の予定」</b><br>
+            {y_plan}
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with st.form("diary_form"):
+        exp = st.text_area("1. 経験したこと", placeholder="今日あった出来事は？")
+        feel = st.text_area("2. 感じたこと・気づいたこと", placeholder="どう感じましたか？")
+        ideas = st.text_area("3. 新しいアイデア", placeholder="思いついたことは？")
+        plan = st.text_area("4. 明日の予定", placeholder="明日は何をする？")
+        
+        submitted = st.form_submit_button("記録する")
+        
+        if submitted:
+            if save_entry(date_val, exp, feel, ideas, plan):
+                st.success("✅ 記録しました！")
+                st.balloons()
+            else:
+                st.error("保存に失敗しました。")
 
-@app.route('/api/history')
-def get_history():
-    df = load_data_df()
-    if not df.empty:
-        df = df.sort_values(by='Date', ascending=False)
-        return df.to_json(orient='records')
-    return jsonify([])
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+with tab2:
+    st.header("History")
+    if st.button("Reload"):
+        st.cache_data.clear()
+        
+    df = load_data()
+    if not df.empty and 'Date' in df.columns:
+        df = df.sort_values(by="Date", ascending=False)
+        
+        for index, row in df.iterrows():
+            ts = row.get('Timestamp', '')
+            time_only = ts.split(' ')[1][:5] if ' ' in ts else ''
+            
+            st.markdown(f"""
+            <div class="history-card">
+                <div style="margin-bottom:8px;">
+                    <span class="history-date">{row.get('Date')}</span>
+                    <span class="history-time">{time_only}</span>
+                </div>
+                <div style="font-size:0.95em;">
+                    <strong>Exp:</strong> {str(row.get('Experience'))[:50]}...<br>
+                    <strong>Plan:</strong> {row.get('TomorrowPlan')}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            with st.expander("詳細を見る"):
+                st.write("**経験したこと:**", row.get('Experience'))
+                st.write("**感じたこと:**", row.get('Feelings'))
+                st.write("**アイデア:**", row.get('Ideas'))
+                st.write("**明日の予定:**", row.get('TomorrowPlan'))
+    else:
+        st.info("データがありません。")
