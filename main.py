@@ -74,7 +74,14 @@ GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 @st.cache_resource
 def get_gspread_client():
     if not GOOGLE_CREDENTIALS_JSON:
-        st.error("GSpread Credentials not found.")
+        st.error("""
+        ❌ **GSpread Credentials not found.**
+        
+        Please set the `GOOGLE_CREDENTIALS_JSON` environment variable.
+        
+        - **Locally**: Create a `.env` file in the project root with `GOOGLE_CREDENTIALS_JSON='{...}'`.
+        - **Render**: Add `GOOGLE_CREDENTIALS_JSON` to your Environment Variables.
+        """)
         return None
     try:
         creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
