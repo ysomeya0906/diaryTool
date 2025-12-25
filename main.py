@@ -236,6 +236,7 @@ with tab_record:
                     "reflection": reflection
                 })
                 st.toast(f"「{title}」を追加しました")
+                st.rerun()
             else:
                 st.error("タイトルを入力してください")
 
