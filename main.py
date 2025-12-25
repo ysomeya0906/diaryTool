@@ -84,35 +84,6 @@ st.markdown("""
     }
     .brick:hover { opacity: 0.9; transform: translateY(-1px); }
     
-    /* Expander Header - Dark Theme & Consistent */
-    /* Targeting the standard HTML details/summary elements used by Streamlit expanders */
-    details > summary {
-        background-color: #21262d !important;
-        color: #ffffff !important;
-        border: 1px solid #30363d !important;
-        border-radius: 8px;
-        margin-bottom: 10px;
-    }
-    details > summary:hover {
-        background-color: #30363d !important;
-        color: #ffffff !important;
-    }
-    /* Ensure text inside summary is white */
-    details > summary span, details > summary p {
-        color: #ffffff !important;
-    }
-    /* Icon color */
-    details > summary svg {
-        fill: #ffffff !important;
-        color: #ffffff !important;
-    }
-    
-    /* Legacy class support just in case */
-    .streamlit-expanderHeader {
-        background-color: #21262d !important;
-        color: #ffffff !important;
-    }
-
     /* Colors - Brightened for black text contrast */
     .cat-science { background-color: #60a5fa; } /* Lighter Blue */
     .cat-art { background-color: #a78bfa; } /* Lighter Purple */
@@ -142,6 +113,11 @@ st.markdown("""
         overflow: hidden;
         margin: 10px 0;
         border: 1px solid #30363d;
+    }
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        transition: width 0.5s ease-in-out;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -285,28 +261,28 @@ with tab_record:
 
     st.markdown("---")
     
-    # Block Input Form
-    with st.expander("🧱 ブロックを追加", expanded=True):
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            cat = st.selectbox("分類", list(CATEGORIES.keys()))
-            count = st.number_input("ブロック数 (1ブロック=30分)", min_value=1, value=1)
-        with c2:
-            title = st.text_input("したこと (タイトル)")
-            reflection = st.text_area("感想・気づき", height=100)
-            
-        if st.button("＋ 追加", type="primary"):
-            if title:
-                st.session_state.temp_blocks.append({
-                    "category": cat,
-                    "title": title,
-                    "count": count,
-                    "reflection": reflection
-                })
-                st.toast(f"「{title}」を追加しました")
-                st.rerun()
-            else:
-                st.error("タイトルを入力してください")
+    # Block Input Form (Direct Display)
+    st.subheader("🧱 ブロックを追加")
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        cat = st.selectbox("分類", list(CATEGORIES.keys()))
+        count = st.number_input("ブロック数 (1ブロック=30分)", min_value=1, value=1)
+    with c2:
+        title = st.text_input("したこと (タイトル)")
+        reflection = st.text_area("感想・気づき", height=100)
+        
+    if st.button("＋ 追加", type="primary"):
+        if title:
+            st.session_state.temp_blocks.append({
+                "category": cat,
+                "title": title,
+                "count": count,
+                "reflection": reflection
+            })
+            st.toast(f"「{title}」を追加しました")
+            st.rerun()
+        else:
+            st.error("タイトルを入力してください")
 
     # Current List Display
     if st.session_state.temp_blocks:
