@@ -158,6 +158,7 @@ def get_sheet():
         st.error(f"Sheet Error: {e}")
         return None
 
+@st.cache_data(ttl=60)
 def load_data():
     sheet = get_sheet()
     if not sheet: return pd.DataFrame()
@@ -187,7 +188,8 @@ def get_yesterday_plan(date_obj):
     try:
         yesterday = date_obj - timedelta(days=1)
         yesterday_str = yesterday.strftime("%Y-%m-%d")
-        row = df[df['Date'] == yesterday_str]
+        # Ensure Date column converted to string for comparison matches
+        row = df[df['Date'].astype(str) == yesterday_str]
         if not row.empty:
             return row.iloc[0].get('TomorrowPlan')
     except:
@@ -201,6 +203,8 @@ def save_entry(date, exp, feel, ideas, plan):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # simple append
         sheet.append_row([str(date), exp, feel, ideas, plan, "", timestamp])
+        # Clear cache so new data appears immediately
+        st.cache_data.clear()
         return True
     except Exception as e:
         st.error(f"Save Error: {e}")
@@ -234,17 +238,22 @@ with tab1:
         
         if submitted:
             if save_entry(date_val, exp, feel, ideas, plan):
-                st.success("✅ 記録しました！")
-                st.balloons()
+                st.success("✅ 記録しました！履歴タブを確認してください。")
             else:
                 st.error("保存に失敗しました。")
 
 with tab2:
     st.header("History")
-    if st.button("Reload"):
+    if st.button("Reload Data"):
         st.cache_data.clear()
+        st.rerun()
         
     df = load_data()
+    
+    # Debug view to help user diagnose
+    with st.expander("Show Raw Data Table (Debug)"):
+        st.dataframe(df)
+        
     if not df.empty and 'Date' in df.columns:
         df = df.sort_values(by="Date", ascending=False)
         
@@ -265,7 +274,7 @@ with tab2:
             </div>
             """, unsafe_allow_html=True)
             
-            with st.expander("詳細を見る"):
+            with st.expander(f"詳細: {row.get('Date')}"):
                 st.write("**経験したこと:**", row.get('Experience'))
                 st.write("**感じたこと:**", row.get('Feelings'))
                 st.write("**アイデア:**", row.get('Ideas'))
