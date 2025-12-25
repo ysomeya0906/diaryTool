@@ -85,24 +85,34 @@ st.markdown("""
     .brick:hover { opacity: 0.9; transform: translateY(-1px); }
     
     /* Expander Header - Dark Theme & Consistent */
-    .streamlit-expanderHeader {
+    /* Targeting the standard HTML details/summary elements used by Streamlit expanders */
+    details > summary {
         background-color: #21262d !important;
         color: #ffffff !important;
         border: 1px solid #30363d !important;
         border-radius: 8px;
+        margin-bottom: 10px;
     }
-    .streamlit-expanderHeader:hover {
-        background-color: #30363d !important; /* Slightly lighter on hover like buttons */
+    details > summary:hover {
+        background-color: #30363d !important;
         color: #ffffff !important;
     }
-    .streamlit-expanderHeader p { 
-        color: #ffffff !important; 
-        font-weight: bold;
+    /* Ensure text inside summary is white */
+    details > summary span, details > summary p {
+        color: #ffffff !important;
     }
-    .streamlit-expanderHeader svg {
+    /* Icon color */
+    details > summary svg {
         fill: #ffffff !important;
+        color: #ffffff !important;
     }
     
+    /* Legacy class support just in case */
+    .streamlit-expanderHeader {
+        background-color: #21262d !important;
+        color: #ffffff !important;
+    }
+
     /* Colors - Brightened for black text contrast */
     .cat-science { background-color: #60a5fa; } /* Lighter Blue */
     .cat-art { background-color: #a78bfa; } /* Lighter Purple */
