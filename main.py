@@ -19,16 +19,31 @@ st.markdown("""
     .stApp { background-color: #0d1117; color: #ffffff; }
     p, h1, h2, h3, h4, h5, h6, li, span { color: #ffffff !important; }
     
-    /* Popovers (Dropdowns, Tooltips) - Force Black Text */
-    /* Target the specific menu container and its children */
+    /* Popovers (Dropdowns, Tooltips) - Dark Theme */
+    /* Target the specific menu container */
     div[data-baseweb="menu"] {
-        background-color: #ffffff !important; /* Ensure white background */
+        background-color: #161b22 !important; /* Dark background */
+        border: 1px solid #30363d !important;
     }
+    /* Target items inside the menu */
     div[data-baseweb="menu"] * {
-        color: #000000 !important; /* Force all children to be black */
+        color: #ffffff !important; /* White text */
+        background-color: transparent !important; /* Let container bg show through, helps with hover effects usually */
     }
-    div[data-baseweb="popover"], div[data-baseweb="popover"] div, div[data-baseweb="popover"] span, div[data-baseweb="popover"] li, div[data-baseweb="popover"] p {
-        color: #000000 !important;
+    /* Fix for specific list items to ensure they render nicely */
+    li[data-baseweb="option"] {
+         color: #ffffff !important;
+    }
+    /* Hover state for options (difficult to target perfectly without specific classes, but this helps) */
+    li[data-baseweb="option"]:hover, li[data-baseweb="option"]:focus {
+        background-color: #30363d !important;
+    }
+
+    /* General Popover overrides */
+    div[data-baseweb="popover"] {
+        background-color: #161b22 !important;
+        color: #ffffff !important;
+        border: 1px solid #30363d;
     }
     
     /* Inputs */
