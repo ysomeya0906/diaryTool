@@ -19,6 +19,11 @@ st.markdown("""
     .stApp { background-color: #0d1117; color: #ffffff; }
     p, h1, h2, h3, h4, h5, h6, li, span { color: #ffffff !important; }
     
+    /* Popovers (Dropdowns, Tooltips) - Force Black Text */
+    div[data-baseweb="popover"], div[data-baseweb="popover"] div, div[data-baseweb="popover"] span, div[data-baseweb="popover"] li, div[data-baseweb="popover"] p {
+        color: #000000 !important;
+    }
+    
     /* Inputs */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
         background-color: #161b22 !important; 
