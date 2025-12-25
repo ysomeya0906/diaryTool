@@ -51,21 +51,9 @@
                 </div>
 
                 <button type="submit" id="save-btn" class="primary-btn">
-                    <i class="fas fa-paper-plane"></i> 記録 & AIアドバイス
+                    <i class="fas fa-paper-plane"></i> 記録する
                 </button>
             </form>
-
-            <!-- Loading Spinner -->
-            <div id="loading" class="hidden">
-                <div class="spinner"></div>
-                <p>Geminiが分析中...</p>
-            </div>
-
-            <!-- AI Advice Modal/Area -->
-            <div id="ai-result" class="card ai-card hidden">
-                <h3><i class="fas fa-robot"></i> AI Mentor Advice</h3>
-                <div id="ai-feedback-text"></div>
-            </div>
         </section>
 
         <!-- SECTION: HISTORY -->
@@ -155,13 +143,12 @@
                     card.innerHTML = `
                         <div class="entry-header">
                             <span class="entry-date">${entry.Date}</span>
-                            <span class="entry-time">${entry.Timestamp.split(' ')[1].slice(0, 5)}</span>
+                            <span class="entry-time">${entry.Timestamp ? entry.Timestamp.split(' ')[1].slice(0, 5) : ''}</span>
                         </div>
                         <div class="entry-body">
-                            <p><strong>Exp:</strong> ${entry.Experience.substring(0, 50)}...</p>
-                            <p><strong>Plan:</strong> ${entry.TomorrowPlan}</p>
+                            <p><strong>Exp:</strong> ${entry.Experience ? entry.Experience.substring(0, 50) + '...' : ''}</p>
+                            <p><strong>Plan:</strong> ${entry.TomorrowPlan || ''}</p>
                         </div>
-                        ${entry.Advice ? `<div class="entry-advice"><small>🤖 ${entry.Advice.substring(0, 60)}...</small></div>` : ''}
                     `;
                     list.appendChild(card);
                 });
@@ -177,12 +164,9 @@
             e.preventDefault();
 
             const btn = document.getElementById('save-btn');
-            const loader = document.getElementById('loading');
-            const aiResult = document.getElementById('ai-result');
 
             btn.disabled = true;
-            loader.classList.remove('hidden');
-            aiResult.classList.add('hidden');
+            btn.innerText = " Saving...";
 
             const payload = {
                 date: document.getElementById('date-picker').value,
@@ -201,9 +185,11 @@
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    // Show AI Advice
-                    document.getElementById('ai-feedback-text').innerText = data.advice;
-                    aiResult.classList.remove('hidden');
+                    alert('記録しました！');
+                    // Reset form or stay? User preference unknown so keep form for now.
+
+                    // If we were automatically switching tabs, we'd do it here, but usually "Record" stays on input.
+                    // Just updating History function if needed.
                 } else {
                     alert('Error saving: ' + (data.message || 'Unknown error'));
                 }
@@ -212,7 +198,7 @@
                 alert('An error occurred: ' + err.message);
             } finally {
                 btn.disabled = false;
-                loader.classList.add('hidden');
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> 記録する';
             }
         });
 

@@ -5,7 +5,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
-import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,12 +12,8 @@ load_dotenv()
 app = Flask(__name__)
 
 # --- Configuration ---
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
 GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "DiaryData")
-
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
 
 # --- Google Sheets Helper ---
 def get_sheet():
@@ -89,44 +84,11 @@ def get_yesterday_plan(today_date_str):
         # Filter (Dataframe operation)
         row = df[df['Date'] == yesterday_str]
         if not row.empty:
+            # Safe access in case column doesn't exist yet
             return row.iloc[0].get('TomorrowPlan', None)
     except Exception as e:
         print(f"Error getting yesterday plan: {e}")
     return None
-
-def get_ai_advice(experience, feelings, ideas, tomorrow_plan):
-    if not GEMINI_API_KEY:
-        return "AI API Key not found. Please configure GEMINI_API_KEY."
-    
-    try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        prompt = f"""
-        あなたは就職活動中の学生をサポートするメンターAIです。
-        以下の日記の内容を分析し、明日以降の生活や就活に活かせるアドバイス、成長の可視化、励ましの言葉をください。
-        
-        【日記内容】
-        1. 経験したこと: {experience}
-        2. 感じたこと・気づいたこと: {feelings}
-        3. 新しいアイデア: {ideas}
-        4. 明日の予定: {tomorrow_plan}
-        
-        【指示】
-        - 簡潔に300文字以内でまとめてください。
-        - 成長している点、身につけつつある能力を具体的に指摘してください。
-        - もし改善点や「ノイズ」（無駄な悩みなど）があれば、ポジティブに評価・指摘してください。
-        """
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        error_msg = str(e)
-        try:
-            # Try to list available models to help debug
-            models = list(genai.list_models())
-            available_models = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
-            debug_info = f" | Available models: {', '.join(available_models)}"
-            return f"AI Error: {error_msg}{debug_info}"
-        except Exception as list_err:
-            return f"AI Error: {error_msg} | Could not list models: {str(list_err)}"
 
 # --- Routes ---
 @app.route('/')
@@ -146,28 +108,17 @@ def save_entry():
     data = request.json
     date = data.get('date')
     
-    # Check duplicate? GSpread doesn't have PK. 
-    # Logic: Delete existing row with same date, then append new.
-    # But filtering and deleting in GSpread is slow.
-    # For simplicity: Just append. User can clean up or we can add logic later.
-    
     experience = data.get('experience')
     feelings = data.get('feelings')
     ideas = data.get('ideas')
     tomorrow_plan = data.get('tomorrow_plan')
     
-    advice = get_ai_advice(experience, feelings, ideas, tomorrow_plan)
+    advice = "" # AI removed
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     sheet = get_sheet()
     if sheet:
-        # Check if date exists and update?
-        # Implementing simple visual check: just list all.
         try:
-            # Find cell with date?
-            # cells = sheet.findall(date)
-            # if cells: ... too complex for now to robustly handle row deletion without ID.
-            # Just append.
             row = [date, experience, feelings, ideas, tomorrow_plan, advice, timestamp]
             sheet.append_row(row)
         except Exception as e:
@@ -175,7 +126,7 @@ def save_entry():
     else:
         return jsonify({"status": "error", "message": "Database (Sheet) unavailable"})
     
-    return jsonify({"status": "success", "advice": advice})
+    return jsonify({"status": "success"})
 
 @app.route('/api/history')
 def get_history():
