@@ -16,12 +16,16 @@ st.set_page_config(page_title="Bricks - Daily Life Blocks", page_icon="🧱", la
 st.markdown("""
 <style>
     /* Global */
-    .stApp { background-color: #0d1117; color: #e6edf3; }
+    .stApp { background-color: #0d1117; color: #ffffff; }
+    p, h1, h2, h3, h4, h5, h6, li, span { color: #ffffff !important; }
     
     /* Inputs */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div {
-        background-color: #161b22; color: #e6edf3; border: 1px solid #30363d;
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
+        background-color: #161b22 !important; 
+        color: #ffffff !important; 
+        border: 1px solid #30363d;
     }
+    .stSelectbox svg { fill: white !important; }
     
     /* Block Visuals */
     .block-container {
@@ -33,38 +37,35 @@ st.markdown("""
     .brick {
         height: 40px;
         border-radius: 4px;
-        color: white;
-        font-size: 0.8em;
+        color: white !important;
+        font-size: 0.85em;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
+        font-weight: 800; /* Bolder text */
         cursor: help;
-        border: 1px solid rgba(255,255,255,0.1);
-        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.2);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* Stronger shadow */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     .brick:hover { opacity: 0.9; transform: translateY(-1px); }
     
-    /* Colors */
-    .cat-science { background-color: #3b82f6; } /* Blue */
-    .cat-art { background-color: #8b5cf6; } /* Purple */
-    .cat-play { background-color: #f97316; } /* Orange */
-    .cat-create { background-color: #10b981; } /* Green */
-    .cat-other { background-color: #6b7280; } /* Gray */
+    /* Colors - Slightly darker for better text contrast */
+    .cat-science { background-color: #2563eb; } /* Blue */
+    .cat-art { background-color: #7c3aed; } /* Purple */
+    .cat-play { background-color: #ea580c; } /* Darker Orange */
+    .cat-create { background-color: #059669; } /* Green */
+    .cat-other { background-color: #4b5563; } /* Gray */
     
     /* Progress Bar */
     .progress-wrapper {
-        background-color: #30363d;
+        background-color: #21262d;
         border-radius: 10px;
-        height: 20px;
+        height: 24px;
         width: 100%;
         overflow: hidden;
         margin: 10px 0;
-    }
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-        transition: width 0.5s ease-in-out;
+        border: 1px solid #30363d;
     }
 </style>
 """, unsafe_allow_html=True)
