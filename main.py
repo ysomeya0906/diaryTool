@@ -84,13 +84,24 @@ st.markdown("""
     }
     .brick:hover { opacity: 0.9; transform: translateY(-1px); }
     
-    /* Expander Header - Make Black Text (requires light background) */
+    /* Expander Header - Dark Theme & Consistent */
     .streamlit-expanderHeader {
-        background-color: #f0f6fc !important;
-        color: #000000 !important;
+        background-color: #21262d !important;
+        color: #ffffff !important;
+        border: 1px solid #30363d !important;
         border-radius: 8px;
     }
-    .streamlit-expanderHeader p { color: #000000 !important; }
+    .streamlit-expanderHeader:hover {
+        background-color: #30363d !important; /* Slightly lighter on hover like buttons */
+        color: #ffffff !important;
+    }
+    .streamlit-expanderHeader p { 
+        color: #ffffff !important; 
+        font-weight: bold;
+    }
+    .streamlit-expanderHeader svg {
+        fill: #ffffff !important;
+    }
     
     /* Colors - Brightened for black text contrast */
     .cat-science { background-color: #60a5fa; } /* Lighter Blue */
