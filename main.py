@@ -67,24 +67,69 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Config & Setup ---
+load_dotenv()
+st.set_page_config(page_title="Daily Growth Journal", page_icon="📓", layout="centered")
+
 # --- Helpers ---
-GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "DiaryData")
-GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS_JSON")
+def get_config(key, default=None):
+    # Try st.secrets first
+    if key in st.secrets:
+        return st.secrets[key]
+    # Fallback to os.getenv
+    return os.getenv(key, default)
+
+GOOGLE_SHEET_NAME = get_config("GOOGLE_SHEET_NAME", "DiaryData")
 
 @st.cache_resource
 def get_gspread_client():
-    if not GOOGLE_CREDENTIALS_JSON:
-        st.error("""
+    # Try getting JSON from secrets/env
+    creds_json = get_config("GOOGLE_CREDENTIALS_JSON")
+    
+    # Special handling for Streamlit Secrets TOML format where it might be parsed already
+    # If user puts [gcp_service_account] in secrets.toml, st.secrets["gcp_service_account"] is a dict.
+    # But sticking to JSON string env var for compatibility is easier for migration.
+    
+    creds_dict = None
+    
+    if creds_json:
+        try:
+            creds_dict = json.loads(creds_json)
+        except json.JSONDecodeError:
+            st.error("Error decoding GOOGLE_CREDENTIALS_JSON. Make sure it is valid JSON.")
+            return None
+    elif "gcp_service_account" in st.secrets:
+        # Support Streamlit's native dict support if they paste contents under [gcp_service_account]
+        creds_dict = dict(st.secrets["gcp_service_account"])
+
+    if not creds_dict:
+        # Debugging Info
+        debug_info = f"""
+        **Debug Info:**
+        - `st.secrets` keys found: `{list(st.secrets.keys())}`
+        - `os.environ` has `GOOGLE_CREDENTIALS_JSON`: `{bool(os.getenv('GOOGLE_CREDENTIALS_JSON'))}`
+        """
+        
+        st.error(f"""
         ❌ **GSpread Credentials not found.**
         
-        Please set the `GOOGLE_CREDENTIALS_JSON` environment variable.
+        {debug_info}
         
-        - **Locally**: Create a `.env` file in the project root with `GOOGLE_CREDENTIALS_JSON='{...}'`.
-        - **Render**: Add `GOOGLE_CREDENTIALS_JSON` to your Environment Variables.
+        **For Streamlit Cloud:**
+        Go to App Settings > Secrets and add:
+        ```toml
+        GOOGLE_SHEET_NAME = "DiaryData"
+        GOOGLE_CREDENTIALS_JSON = '''
+        {{
+          "type": "service_account",
+          ... paste your JSON here ...
+        }}
+        '''
+        ```
         """)
         return None
+
     try:
-        creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
