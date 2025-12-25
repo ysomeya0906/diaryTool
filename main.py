@@ -20,6 +20,13 @@ st.markdown("""
     p, h1, h2, h3, h4, h5, h6, li, span { color: #ffffff !important; }
     
     /* Popovers (Dropdowns, Tooltips) - Force Black Text */
+    /* Target the specific menu container and its children */
+    div[data-baseweb="menu"] {
+        background-color: #ffffff !important; /* Ensure white background */
+    }
+    div[data-baseweb="menu"] * {
+        color: #000000 !important; /* Force all children to be black */
+    }
     div[data-baseweb="popover"], div[data-baseweb="popover"] div, div[data-baseweb="popover"] span, div[data-baseweb="popover"] li, div[data-baseweb="popover"] p {
         color: #000000 !important;
     }
