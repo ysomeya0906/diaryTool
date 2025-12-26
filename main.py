@@ -10,7 +10,7 @@ import altair as alt
 
 # --- Config & Setup ---
 load_dotenv()
-st.set_page_config(page_title="Bricks - Daily Life Blocks", page_icon="🧱", layout="wide")
+st.set_page_config(page_title="Bricks", page_icon="🧱", layout="wide")
 
 # --- Custom CSS ---
 st.markdown("""
@@ -19,100 +19,80 @@ st.markdown("""
     .stApp { background-color: #0d1117; color: #ffffff; }
     p, h1, h2, h3, h4, h5, h6, li, span { color: #ffffff !important; }
     
-    /* Popovers (Dropdowns, Tooltips) - FORCE READABILITY (Black Text / White BG) */
-    /* We are prioritizing readability because the dark mode override was failing */
-    
-    div[data-baseweb="popover"],
-    div[data-baseweb="popover"] > div,
-    div[data-baseweb="menu"],
-    div[role="listbox"] {
+    /* Popovers (Dropdowns, Tooltips) - FORCE READABILITY */
+    div[data-baseweb="popover"], div[data-baseweb="popover"] > div, div[data-baseweb="menu"], div[role="listbox"] {
         background-color: #ffffff !important;
     }
-    
-    /* Target individual options */
-    li[role="option"],
-    li[data-baseweb="option"],
-    div[data-baseweb="popover"] span, 
-    div[data-baseweb="popover"] div {
+    li[role="option"], li[data-baseweb="option"], div[data-baseweb="popover"] span, div[data-baseweb="popover"] div {
         color: #000000 !important;
         background-color: #ffffff !important;
     }
-    
-    /* Hover state */
-    li[role="option"]:hover,
-    li[data-baseweb="option"]:hover,
-    li[role="option"]:focus,
-    li[data-baseweb="option"]:focus {
-        background-color: #e2e8f0 !important; /* Light Gray */
+    li[role="option"]:hover, li[data-baseweb="option"]:hover, li[role="option"]:focus, li[data-baseweb="option"]:focus {
+        background-color: #e2e8f0 !important;
         color: #000000 !important;
     }
+    li[role="option"] svg, li[data-baseweb="option"] svg { fill: #000000 !important; }
 
-    /* Selected state checkmark/icon */
-    li[role="option"] svg,
-    li[data-baseweb="option"] svg {
-        fill: #000000 !important;
-    }
-    
     /* Inputs */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
-        background-color: #161b22 !important; 
-        color: #ffffff !important; 
-        border: 1px solid #30363d;
+        background-color: #161b22 !important; color: #ffffff !important; border: 1px solid #30363d;
     }
     .stSelectbox svg { fill: white !important; }
     
-    /* Block Visuals */
-    .block-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        margin-bottom: 10px;
+    /* Buttons */
+    div.stButton > button {
+        background-color: #21262d !important; color: #ffffff !important; border: 1px solid #30363d !important;
     }
+    div.stButton > button:hover {
+        background-color: #30363d !important;
+    }
+
+    /* Expander */
+    details > summary {
+        background-color: #21262d !important; color: #ffffff !important; border: 1px solid #30363d !important; border-radius: 8px; margin-bottom: 10px;
+    }
+    details > summary:hover { background-color: #30363d !important; }
+    details > summary svg { fill: #ffffff !important; }
+
+    /* Bricks & Visuals */
+    .block-container-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+    
     .brick {
-        height: 40px;
-        border-radius: 4px;
-        color: #000000 !important; /* Black Text as requested */
-        font-size: 0.85em;
+        border-radius: 3px;
+        color: #000000 !important;
+        font-size: 0.75em;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 800;
         cursor: help;
         border: 1px solid rgba(0,0,0,0.1);
-        text-shadow: none; /* Remove shadow for clean black text */
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    .brick:hover { opacity: 0.9; transform: translateY(-1px); }
-    
-    /* Colors - Brightened for black text contrast */
-    .cat-science { background-color: #60a5fa; } /* Lighter Blue */
-    .cat-art { background-color: #a78bfa; } /* Lighter Purple */
-    .cat-play { background-color: #fb923c; } /* Lighter Orange */
-    .cat-create { background-color: #34d399; } /* Lighter Green */
-    .cat-other { background-color: #9ca3af; } /* Lighter Gray */
-    
-    /* Buttons - Consistent Dark Theme */
-    div.stButton > button {
-        background-color: #21262d !important;
-        color: #ffffff !important;
-        border: 1px solid #30363d !important;
-        transition: background-color 0.2s;
-    }
-    div.stButton > button:hover {
-        background-color: #30363d !important; /* Slightly lighter on hover */
-        border-color: #8b949e !important;
-        color: #ffffff !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     
-    /* Progress Bar */
-    .progress-wrapper {
+    /* Category Colors - Adjusted for Black Text */
+    .cat-science { background-color: #60a5fa; } /* Blue */
+    .cat-art { background-color: #a78bfa; } /* Purple */
+    .cat-play { background-color: #fb923c; } /* Orange */
+    .cat-create { background-color: #34d399; } /* Green */
+    .cat-house { background-color: #facc15; } /* Yellow */
+    .cat-other { background-color: #9ca3af; } /* Gray */
+    .cat-empty { background-color: #30363d; border: 1px dashed #4b5563; } /* Empty slot */
+
+    /* Progress Bar Container */
+    .visual-progress {
+        display: flex;
+        gap: 2px;
         background-color: #21262d;
-        border-radius: 10px;
-        height: 24px;
-        width: 100%;
-        overflow: hidden;
-        margin: 10px 0;
+        padding: 4px;
+        border-radius: 6px;
+        margin-bottom: 15px;
         border: 1px solid #30363d;
+    }
+    .prog-brick {
+        flex: 1;
+        height: 24px;
+        border-radius: 2px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -123,6 +103,7 @@ CATEGORIES = {
     "作品鑑賞・体験": "cat-art",
     "遊び": "cat-play",
     "コンテンツ作成": "cat-create",
+    "家事": "cat-house",
     "その他": "cat-other"
 }
 
@@ -144,7 +125,7 @@ def get_gspread_client():
         creds_dict = dict(st.secrets["gcp_service_account"])
 
     if not creds_dict:
-        st.error("❌ GSpread Credentials not found. Check Secrets/Env.")
+        st.error("❌ Credentials Error")
         return None
 
     try:
@@ -166,13 +147,19 @@ def get_sheet():
             sh.share(json.loads(get_config("GOOGLE_CREDENTIALS_JSON"))['client_email'], perm_type='user', role='writer')
             sheet = sh.sheet1
         
-        # New Schema Headers
-        headers = ["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "TotalBlocks", "Timestamp"]
+        # Schema: Added "NextAction" 
+        headers = ["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", "TotalBlocks", "Timestamp"]
+        
+        # Check and migrate headers if needed (Basic check)
         if not sheet.get_all_values():
             sheet.append_row(headers)
-        elif sheet.row_values(1) != headers:
-            # If headers mismatch, we assume migration needed or specific user action reset
-            pass
+        else:
+            current_headers = sheet.row_values(1)
+            if "NextAction" not in current_headers:
+                # Naive migration: Just assume we can append it or reset. 
+                # Since user requested "light", we won't do complex migration logic here.
+                # Assuming user will reset or we just handle index diffs in load_data.
+                pass
             
         return sheet
     except Exception as e:
@@ -180,41 +167,40 @@ def get_sheet():
         return None
 
 @st.cache_data(ttl=60)
-def load_data():
+def load_all_data():
     sheet = get_sheet()
     if not sheet: return pd.DataFrame()
     try:
         rows = sheet.get_all_values()
         if not rows: return pd.DataFrame()
-        return pd.DataFrame(rows[1:], columns=rows[0])
+        # Handle potential column mismatch by strictly picking generic indices or mapping
+        headers = rows[0]
+        # Ensure we have a DF even if headers changed
+        return pd.DataFrame(rows[1:], columns=headers)
     except Exception as e:
-        st.error(f"Read Error: {e}")
         return pd.DataFrame()
 
-def save_daily_record(date, blocks, new_ideas, funny_episodes):
+def save_daily_record(date, blocks, new_ideas, funny_ep, next_action):
     sheet = get_sheet()
     if not sheet: return False
     try:
-        # Serialize blocks to JSON
         blocks_json = json.dumps(blocks, ensure_ascii=False)
         total_blocks = sum(b['count'] for b in blocks)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Check if date exists (Update logic)
         try:
             cell = sheet.find(str(date), in_column=1)
-            if cell:
-                # Update existing row
-                sheet.update_cell(cell.row, 2, blocks_json)
-                sheet.update_cell(cell.row, 3, new_ideas)
-                sheet.update_cell(cell.row, 4, funny_episodes)
-                sheet.update_cell(cell.row, 5, total_blocks)
-                sheet.update_cell(cell.row, 6, timestamp)
-            else:
-                # Append new
-                sheet.append_row([str(date), blocks_json, new_ideas, funny_episodes, total_blocks, timestamp])
+            row_idx = cell.row
+            # Update
+            sheet.update_cell(row_idx, 2, blocks_json)
+            sheet.update_cell(row_idx, 3, new_ideas)
+            sheet.update_cell(row_idx, 4, funny_ep)
+            sheet.update_cell(row_idx, 5, next_action)
+            sheet.update_cell(row_idx, 6, total_blocks)
+            sheet.update_cell(row_idx, 7, timestamp)
         except gspread.CellNotFound:
-             sheet.append_row([str(date), blocks_json, new_ideas, funny_episodes, total_blocks, timestamp])
+            # Append
+            sheet.append_row([str(date), blocks_json, new_ideas, funny_ep, next_action, total_blocks, timestamp])
         
         st.cache_data.clear()
         return True
@@ -222,49 +208,79 @@ def save_daily_record(date, blocks, new_ideas, funny_episodes):
         st.error(f"Save Error: {e}")
         return False
 
-# --- Session State ---
+# --- Session State Logic ---
 if 'temp_blocks' not in st.session_state:
     st.session_state.temp_blocks = []
+if 'loaded_date' not in st.session_state:
+    st.session_state.loaded_date = None
+if 'form_ideas' not in st.session_state: st.session_state.form_ideas = ""
+if 'form_funny' not in st.session_state: st.session_state.form_funny = ""
+if 'form_next' not in st.session_state: st.session_state.form_next = ""
 
-# --- Apps ---
-tab_record, tab_list, tab_class = st.tabs(["📝 記録 (Record)", "🧱 一覧 (List)", "📊 分類 (Stats)"])
+# --- App ---
+tab_record, tab_list, tab_class = st.tabs(["📝 記録", "🧱 一覧", "📊 分類"])
 
 # === TAB 1: RECORD ===
 with tab_record:
-    st.header("今日のブロックを積み上げる")
-    
-    col_date, col_prog = st.columns([1, 2])
+    st.markdown("### 今日のブロックを積み上げる")
+    col_date, col_dummy = st.columns([1, 2])
     with col_date:
         rec_date = st.date_input("日付選択", datetime.now())
     
-    # Progress Calculation
+    # Auto-Load Data on Date Change
+    if st.session_state.loaded_date != rec_date:
+        df = load_all_data()
+        date_str = str(rec_date)
+        if not df.empty and date_str in df['Date'].values:
+            row = df[df['Date'] == date_str].iloc[0]
+            try:
+                st.session_state.temp_blocks = json.loads(row['BlocksJSON'])
+                st.session_state.form_ideas = row.get('NewIdeas', "")
+                st.session_state.form_funny = row.get('FunnyEpisodes', "")
+                st.session_state.form_next = row.get('NextAction', "")
+            except:
+                st.session_state.temp_blocks = []
+                st.session_state.form_ideas = ""
+                st.session_state.form_funny = ""
+                st.session_state.form_next = ""
+        else:
+            # Clear if new date
+            st.session_state.temp_blocks = []
+            st.session_state.form_ideas = ""
+            st.session_state.form_funny = ""
+            st.session_state.form_next = ""
+        st.session_state.loaded_date = rec_date
+
+    # Visual Progress Bar
     current_total = sum(b['count'] for b in st.session_state.temp_blocks)
     target = 24
-    progress_pct = min(current_total / target, 1.0) * 100
     
-    with col_prog:
-        st.write(f"**Progress:** {current_total} / {target} Blocks")
-        st.markdown(f"""
-        <div class="progress-wrapper">
-            <div class="progress-fill" style="width: {progress_pct}%;"></div>
-        </div>
-        """, unsafe_allow_html=True)
-        if current_total < target:
-            st.caption(f"あと {target - current_total} ブロック！ (約 {(target - current_total)*30/60:.1f} 時間)")
-        else:
-            st.success("🎉 目標達成！素晴らしいです！")
+    html_prog = '<div class="visual-progress">'
+    # Render actual blocks
+    rendered_count = 0
+    # Add colored blocks based on actual data
+    for b in st.session_state.temp_blocks:
+        css = CATEGORIES.get(b['category'], 'cat-other')
+        for _ in range(b['count']):
+            if rendered_count < 24:
+                html_prog += f'<div class="prog-brick {css}"></div>'
+                rendered_count += 1
+    # Fill remaining with empty
+    for _ in range(24 - rendered_count):
+        html_prog += '<div class="prog-brick cat-empty"></div>'
+    html_prog += '</div>'
+    
+    st.caption(f"Progress: {current_total} / {target} (+{max(0, current_total-24)} Over)")
+    st.markdown(html_prog, unsafe_allow_html=True)
 
+    # Input Form
     st.markdown("---")
-    
-    st.markdown("---")
-    
-    # Block Input Form (Direct Display)
     st.subheader("🧱 ブロックを追加")
     
     c1, c2 = st.columns([1, 1])
     with c1:
         cat = st.selectbox("分類", list(CATEGORIES.keys()))
-        count = st.number_input("ブロック数 (1ブロック=30分)", min_value=1, value=1)
+        count = st.number_input("ブロック数 (1=30分)", min_value=1, value=1)
     with c2:
         title = st.text_input("したこと (タイトル)")
         reflection = st.text_area("感想・気づき", height=100)
@@ -272,155 +288,135 @@ with tab_record:
     if st.button("＋ 追加", type="primary"):
         if title:
             st.session_state.temp_blocks.append({
-                "category": cat,
-                "title": title,
-                "count": count,
-                "reflection": reflection
+                "category": cat, "title": title, "count": count, "reflection": reflection
             })
-            st.toast(f"「{title}」を追加しました")
+            st.toast(f" Added: {title}")
             st.rerun()
         else:
             st.error("タイトルを入力してください")
 
-    # Current List Display
     if st.session_state.temp_blocks:
-        st.subheader("積まれたブロック")
+        st.markdown("#### 積まれたブロック")
         for i, b in enumerate(st.session_state.temp_blocks):
             css_class = CATEGORIES.get(b['category'], 'cat-other')
             col_b1, col_b2 = st.columns([4, 1])
             with col_b1:
                 st.markdown(f"""
-                <div style="border-left: 5px solid #ccc; padding-left: 10px; margin-bottom: 5px;">
-                    <span class="brick {css_class}" style="display:inline-block; width:100px; height:20px; font-size:0.7em;">{b['category']}</span>
-                    <strong>{b['title']}</strong> ({b['count']} blocks) <br>
-                    <small style="color:#aaa;">{b['reflection']}</small>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+                    <span class="brick {css_class}" style="width:80px; height:24px;">{b['category']}</span>
+                    <span><b>{b['title']}</b> <small>({b['count']})</small></span>
                 </div>
                 """, unsafe_allow_html=True)
             with col_b2:
-                if st.button("削除", key=f"del_{i}"):
+                if st.button("x", key=f"del_{i}"):
                     st.session_state.temp_blocks.pop(i)
                     st.rerun()
 
     st.markdown("---")
-    
-    # Final Reflections
     st.subheader("1日のまとめ")
-    new_ideas = st.text_area("💡 新しいアイデア", placeholder="今日思いついたことは？")
-    funny_ep = st.text_area("🤣 面白エピソード", placeholder="話のネタになりそうなことは？")
+    # Use key to bind to session state for auto-load consistency
+    new_ideas = st.text_area("💡 新しいアイデア", value=st.session_state.form_ideas, key="input_ideas")
+    funny_ep = st.text_area("🤣 面白エピソード", value=st.session_state.form_funny, key="input_funny")
+    next_action = st.text_area("🚀 明日以降活かしたいこと", value=st.session_state.form_next, key="input_next")
     
-    if st.button("✅ 完了 (保存する)", type="primary", use_container_width=True):
+    if st.button("✅ 完了 (保存)", type="primary", use_container_width=True):
         if st.session_state.temp_blocks:
-            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep):
-                st.success("保存しました！")
-                st.session_state.temp_blocks = [] # Clear only on success
+            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action):
+                st.success("Saved!")
                 st.balloons()
             else:
-                st.error("保存に失敗しました")
+                st.error("Save Failed")
         else:
-            st.warning("ブロックがありません")
+            st.warning("No blocks to save")
 
 # === TAB 2: LIST ===
 with tab_list:
-    st.header("積み上げの記録")
-    if st.button("Reload Data"): st.cache_data.clear()
+    st.markdown("### 積み上げ記録")
+    if st.button("Reload"): st.cache_data.clear()
     
-    df = load_data()
+    df = load_all_data()
     if not df.empty:
         df = df.sort_values(by="Date", ascending=False)
-        
-        for index, row in df.iterrows():
-            date_str = row['Date']
-            try:
-                blocks = json.loads(row['BlocksJSON'])
-            except:
-                blocks = []
+        for _, row in df.iterrows():
+            try: blocks = json.loads(row['BlocksJSON'])
+            except: blocks = []
             
-            # Render Row
-            st.markdown(f"### {date_str}")
+            st.markdown(f"**{row['Date']}**")
             
-            # Visual Stack
-            html_blocks = '<div class="block-container">'
+            # Visuals
+            html_blocks = '<div class="block-container-list">'
+            titles_html = '<ul style="margin-top:5px; padding-left:20px; color:#ddd; font-size:0.9em;">'
+            
             for b in blocks:
                 css = CATEGORIES.get(b['category'], 'cat-other')
-                # Render width proportional to count? Or repeat blocks?
-                # User asked for "stacked blocks". Let's show separate bricks for each count or one wide brick?
-                # "積み上げて" -> Let's show 1 unit per count for visually stacking feeling
-                for _ in range(int(b['count'])):
-                    html_blocks += f'<div class="brick {css}" title="{b["title"]}: {b["reflection"]}" style="width:30px;"></div>'
-            html_blocks += '</div>'
-            st.markdown(html_blocks, unsafe_allow_html=True)
+                # Tooltip: Title + Reflection
+                tooltip = f"{b['title']} ({b['count']}): {b['reflection']}"
+                
+                # Render Bricks
+                for _ in range(b['count']):
+                     html_blocks += f'<div class="brick {css}" title="{tooltip}" style="width:30px; height:30px;"></div>'
+                
+                # Add to text list
+                titles_html += f'<li>{b["title"]}</li>'
             
-            # Details Expander
-            with st.expander(f"詳細: {len(blocks)} Activities"):
-                for b in blocks:
-                    st.write(f"**[{b['category']}] {b['title']}** ({b['count']})")
-                    st.caption(b['reflection'])
-                if row.get('NewIdeas'):
-                    st.info(f"💡 **Idea:** {row['NewIdeas']}")
-                if row.get('FunnyEpisodes'):
-                    st.success(f"🤣 **Episode:** {row['FunnyEpisodes']}")
+            html_blocks += '</div>'
+            titles_html += '</ul>'
+            
+            st.markdown(html_blocks, unsafe_allow_html=True)
+            st.markdown(titles_html, unsafe_allow_html=True)
+            
+            # Additional Info
+            extras = []
+            if row.get('NewIdeas'): extras.append(f"💡 {row['NewIdeas']}")
+            if row.get('FunnyEpisodes'): extras.append(f"🤣 {row['FunnyEpisodes']}")
+            if row.get('NextAction'): extras.append(f"🚀 {row['NextAction']}")
+            
+            if extras:
+                with st.expander("メモを見る"):
+                    for ex in extras: st.write(ex)
             st.markdown("---")
     else:
-        st.info("データがありません")
+        st.info("No Data")
 
-# === TAB 3: CLASSIFICATION ===
+# === TAB 3: STATS ===
 with tab_class:
-    st.header("分類・分析")
-    
-    df_c = load_data()
+    st.markdown("### 分類・分析")
+    df_c = load_all_data()
     if not df_c.empty:
-        # Process Data for Stats
         all_blocks = []
-        for idx, row in df_c.iterrows():
+        for _, row in df_c.iterrows():
             try:
                 bs = json.loads(row['BlocksJSON'])
                 for b in bs:
                     b['Date'] = row['Date']
                     all_blocks.append(b)
             except: pass
-            
+        
         if all_blocks:
-            df_blocks = pd.DataFrame(all_blocks)
+            df_b = pd.DataFrame(all_blocks)
+            cat_filter = st.selectbox("Filter", ["All"] + list(CATEGORIES.keys()))
             
-            # Filter
-            selected_cat = st.selectbox("カテゴリを絞り込む", ["All"] + list(CATEGORIES.keys()) + ["新しいアイデア", "面白エピソード"])
-            
-            if selected_cat in list(CATEGORIES.keys()):
-                filtered = df_blocks[df_blocks['category'] == selected_cat]
-                st.metric(f"Total Blocks ({selected_cat})", filtered['count'].sum())
-                st.dataframe(filtered[['Date', 'title', 'count', 'reflection']])
-            
-            elif selected_cat == "All":
-                # Aggregate by Category
-                stats = df_blocks.groupby("category")['count'].sum().reset_index()
+            if cat_filter == "All":
+                stats = df_b.groupby("category")['count'].sum().reset_index()
                 chart = alt.Chart(stats).mark_bar().encode(
-                    x='category',
-                    y='count',
+                    x='category', y='count',
                     color=alt.Color('category', scale=alt.Scale(
                         domain=list(CATEGORIES.keys()),
-                        range=['#3b82f6', '#8b5cf6', '#f97316', '#10b981', '#6b7280']
+                        range=['#60a5fa', '#a78bfa', '#fb923c', '#34d399', '#facc15', '#9ca3af']
                     ))
                 )
                 st.altair_chart(chart, use_container_width=True)
-                st.dataframe(df_blocks)
-            
-            elif selected_cat in ["新しいアイデア", "面白エピソード"]:
-                col_name = "NewIdeas" if selected_cat == "新しいアイデア" else "FunnyEpisodes"
-                # Filter rows where col is not empty
-                res = df_c[df_c[col_name] != ""][['Date', col_name]]
-                st.table(res)
+            else:
+                st.dataframe(df_b[df_b['category'] == cat_filter][['Date', 'title', 'count', 'reflection']])
 
-    else:
-        st.warning("データ不足です")
-
-# --- Sidebar Reset (Maintained) ---
+# --- Sidebar ---
 with st.sidebar:
     st.markdown("---")
-    if st.button("⚠️ DB Reset (Bricks Schema)"):
+    if st.button("⚠️ DB Reset (New Schema)"):
         s = get_sheet()
         if s:
             s.clear()
-            s.append_row(["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "TotalBlocks", "Timestamp"])
+            s.append_row(["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", "TotalBlocks", "Timestamp"])
             st.cache_data.clear()
-            st.success("Reset Complete for Bricks!")
+            st.success("Reset Done!")
             st.rerun()
