@@ -93,9 +93,11 @@ st.markdown("""
         border-radius: 6px;
         margin-bottom: 10px;
         border: 1px solid #30363d;
+        overflow-x: auto; /* Allow scrolling */
     }
     .prog-brick {
-        flex: 1;
+        flex: 0 0 auto; /* Don't shrink */
+        min-width: 4%; /* Approx 24 items fit, then scroll */
         height: 20px; /* Slightly smaller */
         border-radius: 2px;
     }
@@ -292,17 +294,17 @@ with tab_record:
     
     html_prog = '<div class="visual-progress">'
     # Render actual blocks
-    rendered_count = 0
     # Add colored blocks based on actual data
     for b in st.session_state.temp_blocks:
         css = get_cat_color(b['category'])
         for _ in range(b['count']):
-            if rendered_count < 24:
-                html_prog += f'<div class="prog-brick {css}"></div>'
-                rendered_count += 1
-    # Fill remaining with empty
-    for _ in range(24 - rendered_count):
-        html_prog += '<div class="prog-brick cat-empty"></div>'
+            html_prog += f'<div class="prog-brick {css}"></div>'
+    
+    # Fill remaining with empty if less than target
+    if current_total < target:
+        for _ in range(target - current_total):
+            html_prog += '<div class="prog-brick cat-empty"></div>'
+            
     html_prog += '</div>'
     
     st.caption(f"Progress: {current_total} / {target} (+{max(0, current_total-24)} Over)")
@@ -472,7 +474,8 @@ with tab_class:
                     # Bar Chart for the week
                     stats_w = df_week.groupby("category")['count'].sum().reset_index()
                     chart_w = alt.Chart(stats_w).mark_bar().encode(
-                        x='category', y='count',
+                        x='category',
+                        y=alt.Y('count', scale=alt.Scale(nice=True)),
                         color=alt.Color('category', scale=alt.Scale(
                             domain=list(CATEGORIES.keys()),
                             range=['#60a5fa', '#a78bfa', '#fb923c', '#34d399', '#facc15', '#9ca3af']
@@ -495,7 +498,8 @@ with tab_class:
             if cat_filter == "All":
                 stats = df_b.groupby("category")['count'].sum().reset_index()
                 chart = alt.Chart(stats).mark_bar().encode(
-                    x='category', y='count',
+                    x='category',
+                    y=alt.Y('count', scale=alt.Scale(nice=True)),
                     color=alt.Color('category', scale=alt.Scale(
                         domain=list(CATEGORIES.keys()),
                         range=['#60a5fa', '#a78bfa', '#fb923c', '#34d399', '#facc15', '#9ca3af']
@@ -504,7 +508,8 @@ with tab_class:
                 st.altair_chart(chart, use_container_width=True)
             else:
                 target_df = df_b[df_b['category'] == cat_filter]
-                st.metric(f"{cat_filter} Total", target_df['count'].sum())
+                total_val = target_df['count'].sum()
+                st.markdown(f"<h3 style='color:white; border-bottom:1px solid #444; padding-bottom:10px;'>{cat_filter} Total: {total_val}</h3>", unsafe_allow_html=True)
                 st.dataframe(target_df[['Date', 'title', 'count', 'reflection']], use_container_width=True)
 
 # --- Sidebar ---
