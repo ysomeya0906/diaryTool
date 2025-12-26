@@ -362,6 +362,14 @@ with tab_record:
 # === TAB 2: LIST ===
 with tab_list:
     st.markdown("### 積み上げ記録")
+    
+    # Legend
+    legend_html = '<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">'
+    for cat_name, css_class in CATEGORIES.items():
+        legend_html += f'<span class="brick {css_class}" style="padding: 0 10px; height: 24px;">{cat_name}</span>'
+    legend_html += '</div>'
+    st.markdown(legend_html, unsafe_allow_html=True)
+
     if st.button("Reload"): st.cache_data.clear()
     
     df = load_all_data()
