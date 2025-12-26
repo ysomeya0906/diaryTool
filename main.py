@@ -60,14 +60,19 @@ st.markdown("""
     .brick {
         border-radius: 3px;
         color: #000000 !important;
-        font-size: 0.75em;
-        display: flex;
+        font-size: 11px !important; /* Smaller text as requested */
+        padding: 2px 6px;
+        display: inline-flex; /* Changed to inline-flex to fit content */
         align-items: center;
         justify-content: center;
-        font-weight: 800;
+        font-weight: 700;
         cursor: help;
         border: 1px solid rgba(0,0,0,0.1);
         box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        white-space: nowrap; /* Prevent text wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 50px; /* Minimum width */
     }
     
     /* Category Colors - Adjusted for Black Text */
@@ -86,12 +91,12 @@ st.markdown("""
         background-color: #21262d;
         padding: 4px;
         border-radius: 6px;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
         border: 1px solid #30363d;
     }
     .prog-brick {
         flex: 1;
-        height: 24px;
+        height: 20px; /* Slightly smaller */
         border-radius: 2px;
     }
 </style>
@@ -326,21 +331,28 @@ with tab_record:
             st.error("タイトルを入力してください")
 
     if st.session_state.temp_blocks:
-        st.markdown("#### 積まれたブロック")
-        for i, b in enumerate(st.session_state.temp_blocks):
-            css_class = get_cat_color(b['category'])
-            col_b1, col_b2 = st.columns([4, 1])
-            with col_b1:
-                st.markdown(f"""
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
-                    <span class="brick {css_class}" style="width:80px; height:24px;">{b['category']}</span>
-                    <span><b>{b['title']}</b> <small>({b['count']})</small></span>
-                </div>
-                """, unsafe_allow_html=True)
-            with col_b2:
-                if st.button("x", key=f"del_{i}"):
-                    st.session_state.temp_blocks.pop(i)
-                    st.rerun()
+        st.markdown(f"#### 積まれたブロック ({len(st.session_state.temp_blocks)})")
+        
+        # Scrollable container for blocks
+        with st.container(height=250, border=True):
+            for i, b in enumerate(reversed(st.session_state.temp_blocks)):
+                # Reverse index for display, but need real index for deletion
+                real_idx = len(st.session_state.temp_blocks) - 1 - i
+                
+                css_class = get_cat_color(b['category'])
+                col_b1, col_b2 = st.columns([4, 1])
+                with col_b1:
+                    # Compact view, removed fixed width
+                    st.markdown(f"""
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:2px;">
+                        <span class="brick {css_class}">{b['category']}</span>
+                        <span style="font-size:0.9em;"><b>{b['title']}</b> <small>({b['count']})</small></span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_b2:
+                    if st.button("x", key=f"del_{real_idx}"):
+                        st.session_state.temp_blocks.pop(real_idx)
+                        st.rerun()
 
     st.markdown("---")
     st.subheader("1日のまとめ")
