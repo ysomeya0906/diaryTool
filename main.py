@@ -226,7 +226,7 @@ def save_daily_record(date, blocks, new_ideas, funny_ep, next_action):
             sheet.update_cell(row_idx, 5, next_action)
             sheet.update_cell(row_idx, 6, total_blocks)
             sheet.update_cell(row_idx, 7, timestamp)
-        except gspread.CellNotFound:
+        except gspread.exceptions.CellNotFound:
             # Append
             sheet.append_row([str(date), blocks_json, new_ideas, funny_ep, next_action, total_blocks, timestamp])
         
