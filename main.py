@@ -216,9 +216,11 @@ def save_daily_record(date, blocks, new_ideas, funny_ep, next_action):
         total_blocks = sum(b['count'] for b in blocks)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        try:
-            cell = sheet.find(str(date), in_column=1)
-            row_idx = cell.row
+        # Use findall to safely check existence without worrying about explicit Exception classes
+        cells = sheet.findall(str(date), in_column=1)
+        
+        if cells:
+            row_idx = cells[0].row
             # Update
             sheet.update_cell(row_idx, 2, blocks_json)
             sheet.update_cell(row_idx, 3, new_ideas)
@@ -226,7 +228,7 @@ def save_daily_record(date, blocks, new_ideas, funny_ep, next_action):
             sheet.update_cell(row_idx, 5, next_action)
             sheet.update_cell(row_idx, 6, total_blocks)
             sheet.update_cell(row_idx, 7, timestamp)
-        except gspread.exceptions.CellNotFound:
+        else:
             # Append
             sheet.append_row([str(date), blocks_json, new_ideas, funny_ep, next_action, total_blocks, timestamp])
         
