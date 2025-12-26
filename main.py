@@ -147,20 +147,43 @@ def get_sheet():
             sh.share(json.loads(get_config("GOOGLE_CREDENTIALS_JSON"))['client_email'], perm_type='user', role='writer')
             sheet = sh.sheet1
         
-        # Schema: Added "NextAction" 
-        headers = ["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", "TotalBlocks", "Timestamp"]
+        # Schema Definition
+        EXPECTED_HEADERS = ["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", "TotalBlocks", "Timestamp"]
         
-        # Check and migrate headers if needed (Basic check)
+        # 1. Check if sheet is empty
         if not sheet.get_all_values():
-            sheet.append_row(headers)
-        else:
-            current_headers = sheet.row_values(1)
-            if "NextAction" not in current_headers:
-                # Naive migration: Just assume we can append it or reset. 
-                # Since user requested "light", we won't do complex migration logic here.
-                # Assuming user will reset or we just handle index diffs in load_data.
-                pass
+            sheet.append_row(EXPECTED_HEADERS)
+            return sheet
             
+        # 2. Auto-Migration: Resize columns if needed
+        # If we added new fields in code, the sheet might be too narrow.
+        current_col_count = sheet.col_count
+        required_col_count = len(EXPECTED_HEADERS)
+        
+        if current_col_count < required_col_count:
+            # Resize sheet to fit new columns
+            sheet.resize(cols=required_col_count)
+            
+        # 3. Update Headers (add missing ones)
+        current_headers = sheet.row_values(1)
+        if len(current_headers) < required_col_count:
+            # We have blank columns now (due to resize). Let's fill the headers.
+            # We assume the order is appended. Re-writing the whole header row is safest.
+            # Note: This overwrites custom header names if user changed them, but ensures consistency.
+            date_cell = sheet.cell(1, 1).value
+            if date_cell == "Date": # Simple safety check
+                # Update header row to match code
+                for i, header in enumerate(EXPECTED_HEADERS):
+                    # +1 because gspread is 1-indexed
+                    if i < len(current_headers):
+                        if current_headers[i] != header:
+                            # Header mismatch - Optional: Log or overwrite. 
+                            # Let's overwrite to ensure matching schema for index-based writes.
+                            sheet.update_cell(1, i+1, header)
+                    else:
+                        # New column header
+                        sheet.update_cell(1, i+1, header)
+                        
         return sheet
     except Exception as e:
         st.error(f"Sheet Error: {e}")
