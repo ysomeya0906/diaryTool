@@ -99,13 +99,18 @@ st.markdown("""
 
 # --- Category Config ---
 CATEGORIES = {
-    "理工学": "cat-science",
+    "勉強・研究": "cat-science",
     "作品鑑賞・体験": "cat-art",
     "遊び": "cat-play",
     "コンテンツ作成": "cat-create",
     "家事": "cat-house",
     "その他": "cat-other"
 }
+
+def get_cat_color(cat_name):
+    # Legacy support
+    if cat_name == "理工学": return "cat-science"
+    return CATEGORIES.get(cat_name, 'cat-other')
 
 # --- Helpers ---
 def get_config(key, default=None):
@@ -283,7 +288,7 @@ with tab_record:
     rendered_count = 0
     # Add colored blocks based on actual data
     for b in st.session_state.temp_blocks:
-        css = CATEGORIES.get(b['category'], 'cat-other')
+        css = get_cat_color(b['category'])
         for _ in range(b['count']):
             if rendered_count < 24:
                 html_prog += f'<div class="prog-brick {css}"></div>'
@@ -321,7 +326,7 @@ with tab_record:
     if st.session_state.temp_blocks:
         st.markdown("#### 積まれたブロック")
         for i, b in enumerate(st.session_state.temp_blocks):
-            css_class = CATEGORIES.get(b['category'], 'cat-other')
+            css_class = get_cat_color(b['category'])
             col_b1, col_b2 = st.columns([4, 1])
             with col_b1:
                 st.markdown(f"""
@@ -371,7 +376,7 @@ with tab_list:
             titles_html = '<ul style="margin-top:5px; padding-left:20px; color:#ddd; font-size:0.9em;">'
             
             for b in blocks:
-                css = CATEGORIES.get(b['category'], 'cat-other')
+                css = get_cat_color(b['category'])
                 # Tooltip: Title + Reflection
                 tooltip = f"{b['title']} ({b['count']}): {b['reflection']}"
                 
