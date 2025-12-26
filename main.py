@@ -393,17 +393,25 @@ with tab_list:
             titles_html += '</ul>'
             
             st.markdown(html_blocks, unsafe_allow_html=True)
-            st.markdown(titles_html, unsafe_allow_html=True)
             
-            # Additional Info
-            extras = []
-            if row.get('NewIdeas'): extras.append(f"💡 {row['NewIdeas']}")
-            if row.get('FunnyEpisodes'): extras.append(f"🤣 {row['FunnyEpisodes']}")
-            if row.get('NextAction'): extras.append(f"🚀 {row['NextAction']}")
+            # Dropdown for Details (Reflections)
+            with st.expander("詳細・感想を見る"):
+                for b in blocks:
+                    css_color = get_cat_color(b['category'])
+                    # Simple colored marker
+                    st.markdown(f"""
+                    <div style="margin-bottom:8px;">
+                        <span class="brick {css_color}" style="display:inline-block; width:12px; height:12px; margin-right:5px;"></span>
+                        <strong>{b['title']}</strong> <small>({b['count']} blocks)</small><br>
+                        <span style="color:#ccc; margin-left:20px;">{b.get('reflection', 'No reflection')}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                # Additional Info (merged into this expander or separate, user asked for reflections specifically)
+                if row.get('NewIdeas'): st.info(f"💡 Ideas: {row['NewIdeas']}")
+                if row.get('FunnyEpisodes'): st.success(f"🤣 Funny: {row['FunnyEpisodes']}")
+                if row.get('NextAction'): st.warning(f"🚀 Next: {row['NextAction']}")
             
-            if extras:
-                with st.expander("メモを見る"):
-                    for ex in extras: st.write(ex)
             st.markdown("---")
     else:
         st.info("No Data")
@@ -412,19 +420,57 @@ with tab_list:
 with tab_class:
     st.markdown("### 分類・分析")
     df_c = load_all_data()
+    
     if not df_c.empty:
+        # Pre-process block data
         all_blocks = []
         for _, row in df_c.iterrows():
             try:
                 bs = json.loads(row['BlocksJSON'])
+                # Convert row Date to datetime for filtering
+                d = datetime.strptime(row['Date'], "%Y-%m-%d").date()
                 for b in bs:
+                    b['DateObj'] = d
                     b['Date'] = row['Date']
                     all_blocks.append(b)
             except: pass
         
         if all_blocks:
             df_b = pd.DataFrame(all_blocks)
-            cat_filter = st.selectbox("Filter", ["All"] + list(CATEGORIES.keys()))
+            
+            # --- Weekly Analysis ---
+            st.subheader("週間レポート (直近7日間)")
+            today = datetime.now().date()
+            seven_days_ago = today - timedelta(days=7)
+            
+            # Filter current week
+            df_week = df_b[(df_b['DateObj'] <= today) & (df_b['DateObj'] > seven_days_ago)]
+            
+            if not df_week.empty:
+                col_w1, col_w2 = st.columns([2, 1])
+                with col_w1:
+                    # Bar Chart for the week
+                    stats_w = df_week.groupby("category")['count'].sum().reset_index()
+                    chart_w = alt.Chart(stats_w).mark_bar().encode(
+                        x='category', y='count',
+                        color=alt.Color('category', scale=alt.Scale(
+                            domain=list(CATEGORIES.keys()),
+                            range=['#60a5fa', '#a78bfa', '#fb923c', '#34d399', '#facc15', '#9ca3af']
+                        )),
+                        tooltip=['category', 'count']
+                    ).properties(height=300)
+                    st.altair_chart(chart_w, use_container_width=True)
+                
+                with col_w2:
+                    st.write("**カテゴリ別合計**")
+                    st.dataframe(stats_w.set_index("category"), use_container_width=True)
+            else:
+                st.info("直近7日間のデータがありません。")
+
+            st.markdown("---")
+            st.subheader("全期間・詳細フィルタ")
+            
+            cat_filter = st.selectbox("カテゴリ絞り込み", ["All"] + list(CATEGORIES.keys()))
             
             if cat_filter == "All":
                 stats = df_b.groupby("category")['count'].sum().reset_index()
@@ -437,7 +483,9 @@ with tab_class:
                 )
                 st.altair_chart(chart, use_container_width=True)
             else:
-                st.dataframe(df_b[df_b['category'] == cat_filter][['Date', 'title', 'count', 'reflection']])
+                target_df = df_b[df_b['category'] == cat_filter]
+                st.metric(f"{cat_filter} Total", target_df['count'].sum())
+                st.dataframe(target_df[['Date', 'title', 'count', 'reflection']], use_container_width=True)
 
 # --- Sidebar ---
 with st.sidebar:
