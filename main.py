@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import altair as alt
+import html
 
 # --- Config & Setup ---
 load_dotenv()
@@ -402,7 +403,10 @@ with tab_list:
             for b in blocks:
                 css = get_cat_color(b['category'])
                 # Tooltip: Title + Reflection
-                tooltip = f"{b['title']} ({b['count']}): {b['reflection']}"
+                # Sanitize: Escape HTML chars AND remove newlines for valid title attribute
+                title_esc = html.escape(b['title']).replace('\n', ' ')
+                refl_esc = html.escape(b.get('reflection', '')).replace('\n', ' ')
+                tooltip = f"{title_esc} ({b['count']}): {refl_esc}"
                 
                 # Render Bricks
                 for _ in range(b['count']):
@@ -424,8 +428,8 @@ with tab_list:
                     st.markdown(f"""
                     <div style="margin-bottom:8px;">
                         <span class="brick {css_color}" style="display:inline-block; width:12px; height:12px; margin-right:5px;"></span>
-                        <strong>{b['title']}</strong> <small>({b['count']} blocks)</small><br>
-                        <span style="color:#ccc; margin-left:20px;">{b.get('reflection', 'No reflection')}</span>
+                        <strong>{title_esc}</strong> <small>({b['count']} blocks)</small><br>
+                        <span style="color:#ccc; margin-left:20px;">{refl_esc or 'No reflection'}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -509,8 +513,18 @@ with tab_class:
             else:
                 target_df = df_b[df_b['category'] == cat_filter]
                 total_val = target_df['count'].sum()
-                st.markdown(f"<h3 style='color:white; border-bottom:1px solid #444; padding-bottom:10px;'>{cat_filter} Total: {total_val}</h3>", unsafe_allow_html=True)
-                st.dataframe(target_df[['Date', 'title', 'count', 'reflection']], use_container_width=True)
+                
+                # Independent, stylish card for Total
+                st.metric(label=f"Total {cat_filter} Blocks", value=total_val)
+                
+                # Full width text for reflection
+                st.dataframe(
+                    target_df[['Date', 'title', 'count', 'reflection']], 
+                    use_container_width=True,
+                    column_config={
+                        "reflection": st.column_config.TextColumn("Reflection", width="large")
+                    }
+                )
 
 # --- Sidebar ---
 with st.sidebar:
