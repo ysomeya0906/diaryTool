@@ -424,12 +424,16 @@ with tab_list:
             with st.expander("詳細・感想を見る"):
                 for b in blocks:
                     css_color = get_cat_color(b['category'])
-                    # Simple colored marker
+                    # FIX: Re-calculate escaped strings for the CURRENT block 'b'
+                    # Reuse the same sanitization logic as above
+                    t_esc = html.escape(b['title']).replace('\n', ' ')
+                    r_esc = html.escape(b.get('reflection', '')).replace('\n', ' ')
+                    
                     st.markdown(f"""
                     <div style="margin-bottom:8px;">
                         <span class="brick {css_color}" style="display:inline-block; width:12px; height:12px; margin-right:5px;"></span>
-                        <strong>{title_esc}</strong> <small>({b['count']} blocks)</small><br>
-                        <span style="color:#ccc; margin-left:20px;">{refl_esc or 'No reflection'}</span>
+                        <strong>{t_esc}</strong> <small>({b['count']} blocks)</small><br>
+                        <span style="color:#ccc; margin-left:20px;">{r_esc or 'No reflection'}</span>
                     </div>
                     """, unsafe_allow_html=True)
 
