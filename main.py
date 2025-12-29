@@ -521,13 +521,16 @@ with tab_class:
                 # Independent, stylish card for Total
                 st.metric(label=f"Total {cat_filter} Blocks", value=total_val)
                 
-                # Full width text for reflection
-                st.dataframe(
-                    target_df[['Date', 'title', 'count', 'reflection']], 
-                    use_container_width=True,
-                    column_config={
-                        "reflection": st.column_config.TextColumn("Reflection", width="large")
-                    }
+                # Use st.table to allow full text wrapping
+                st.table(
+                    target_df[['Date', 'title', 'count', 'reflection']].rename(
+                        columns={
+                            'Date': '日付',
+                            'title': 'タイトル',
+                            'count': '数',
+                            'reflection': '感想・気づき'
+                        }
+                    )
                 )
 
             st.markdown("---")
