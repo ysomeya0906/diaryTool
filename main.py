@@ -499,76 +499,86 @@ with tab_class:
                 st.info("直近7日間のデータがありません。")
 
             st.markdown("---")
-            st.markdown("---")
             st.subheader("全期間・詳細フィルタ")
             
-            # Options for the filter: Categories + Special Text Fields
-            filter_options = list(CATEGORIES.keys()) + ["💡 新しいアイデア", "🤣 面白エピソード", "🚀 明日以降活かしたいこと"]
-            selected_filters = st.multiselect("表示フィルタ (複数選択可)", filter_options, default=filter_options)
+            cat_filter = st.selectbox("カテゴリ絞り込み", ["All"] + list(CATEGORIES.keys()))
             
-            # --- 1. Prepare Unified Data ---
-            unified_data = []
-            
-            # (A) Add Blocks
-            for b in all_blocks:
-                unified_data.append({
-                    "Date": b['Date'],
-                    "Type": b['category'],
-                    "Content": b['title'],
-                    "Note": b.get('reflection', '')
-                })
-            
-            # (B) Add Text Entries (Ideas, Funny, Next)
-            for _, row in df_c.iterrows():
-                if row.get('NewIdeas'):
-                    unified_data.append({
-                        "Date": row['Date'],
-                        "Type": "💡 新しいアイデア",
-                        "Content": row['NewIdeas'],
-                        "Note": ""
-                    })
-                if row.get('FunnyEpisodes'):
-                    unified_data.append({
-                        "Date": row['Date'],
-                        "Type": "🤣 面白エピソード",
-                        "Content": row['FunnyEpisodes'],
-                        "Note": ""
-                    })
-                if row.get('NextAction'):
-                    unified_data.append({
-                        "Date": row['Date'],
-                        "Type": "🚀 明日以降活かしたいこと",
-                        "Content": row['NextAction'],
-                        "Note": ""
-                    })
-            
-            df_unified = pd.DataFrame(unified_data)
-            
-            if not df_unified.empty:
-                # --- 2. Filter ---
-                if selected_filters:
-                    df_filtered = df_unified[df_unified['Type'].isin(selected_filters)]
-                else:
-                    df_filtered = df_unified # Show all if nothing selected (or empty if preferred, currently showing all is friendlier)
+            if cat_filter == "All":
+                stats = df_b.groupby("category")['count'].sum().reset_index()
+                chart = alt.Chart(stats).mark_bar().encode(
+                    x='category',
+                    y=alt.Y('count', scale=alt.Scale(nice=True)),
+                    color=alt.Color('category', scale=alt.Scale(
+                        domain=list(CATEGORIES.keys()),
+                        range=['#60a5fa', '#a78bfa', '#fb923c', '#34d399', '#facc15', '#9ca3af']
+                    ))
+                )
+                st.altair_chart(chart, use_container_width=True)
+            else:
+                target_df = df_b[df_b['category'] == cat_filter]
+                total_val = target_df['count'].sum()
                 
-                # Sort by Date Descending
-                df_filtered = df_filtered.sort_values(by="Date", ascending=False)
+                # Independent, stylish card for Total
+                st.metric(label=f"Total {cat_filter} Blocks", value=total_val)
                 
-                # --- 3. Display ---
-                st.caption(f"Showing {len(df_filtered)} items")
+                # Full width text for reflection
                 st.dataframe(
-                    df_filtered,
+                    target_df[['Date', 'title', 'count', 'reflection']], 
                     use_container_width=True,
-                    hide_index=True,
                     column_config={
-                        "Date": st.column_config.TextColumn("日付", width="small"),
-                        "Type": st.column_config.TextColumn("種別", width="medium"),
-                        "Content": st.column_config.TextColumn("内容", width="large"),
-                        "Note": st.column_config.TextColumn("備考/感想", width="large"),
+                        "reflection": st.column_config.TextColumn("Reflection", width="large")
                     }
                 )
-            else:
-                st.info("データがありません")
+
+            st.markdown("---")
+            st.subheader("1日のまとめ (全期間リスト)")
+            
+            summary_tab1, summary_tab2, summary_tab3 = st.tabs(["💡 アイデア", "🤣 面白エピソード", "🚀 明日以降"])
+            
+            with summary_tab1:
+                df_ideas = df_c[df_c['NewIdeas'].notna() & (df_c['NewIdeas'] != "")].sort_values(by="Date", ascending=False)
+                if not df_ideas.empty:
+                    st.dataframe(
+                        df_ideas[['Date', 'NewIdeas']],
+                        use_container_width=True,
+                        column_config={
+                            "Date": st.column_config.TextColumn("日付", width="small"),
+                            "NewIdeas": st.column_config.TextColumn("新しいアイデア", width="large")
+                        },
+                        hide_index=True
+                    )
+                else:
+                    st.info("データがありません")
+
+            with summary_tab2:
+                df_funny = df_c[df_c['FunnyEpisodes'].notna() & (df_c['FunnyEpisodes'] != "")].sort_values(by="Date", ascending=False)
+                if not df_funny.empty:
+                    st.dataframe(
+                        df_funny[['Date', 'FunnyEpisodes']],
+                        use_container_width=True,
+                        column_config={
+                            "Date": st.column_config.TextColumn("日付", width="small"),
+                            "FunnyEpisodes": st.column_config.TextColumn("面白エピソード", width="large")
+                        },
+                        hide_index=True
+                    )
+                else:
+                    st.info("データがありません")
+
+            with summary_tab3:
+                df_next = df_c[df_c['NextAction'].notna() & (df_c['NextAction'] != "")].sort_values(by="Date", ascending=False)
+                if not df_next.empty:
+                    st.dataframe(
+                        df_next[['Date', 'NextAction']],
+                        use_container_width=True,
+                        column_config={
+                            "Date": st.column_config.TextColumn("日付", width="small"),
+                            "NextAction": st.column_config.TextColumn("明日以降活かしたいこと", width="large")
+                        },
+                        hide_index=True
+                    )
+                else:
+                    st.info("データがありません")
 
 # --- Sidebar ---
 with st.sidebar:
