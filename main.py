@@ -400,17 +400,20 @@ with tab_record:
                 col_b1, col_b2 = st.columns([4, 1])
                 with col_b1:
                     # Compact view, removed fixed width
-                    st.markdown(f"""
-                        <span class="brick {css_class}">{b['category']}</span>
-                        <span style="font-size:0.9em;"><b>{b['title']}</b> <small>({b['count']})</small></span>
-                    </div>
-                    <div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:5px;">
-                        <span style="color:#ffd700; margin-right:8px;">{'⭐' * b.get('rating', 3)}</span>
-                        {' '.join([f'<span style="background:#333; padding:1px 4px; border-radius:3px;">{t}</span>' for t in b.get('tags', [])])}
-                        {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}... <br>
-                        <span style="color:#fbbf24;">🎓 {html.escape(b.get('lesson','')[:30])}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"""<div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+<span class="brick {css_class}">{b['category']}</span>
+<span style="font-size:0.9em; font-weight:bold;">{b['title']} <small style="font-weight:normal; color:#ccc;">({b['count']})</small></span>
+</div>
+<div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:10px; line-height:1.4;">
+<span style="color:#ffd700; margin-right:8px;">{'⭐' * b.get('rating', 3)}</span>
+{' '.join([f'<span style="background:#333; padding:1px 4px; border-radius:3px; margin-right:4px;">{t}</span>' for t in b.get('tags', [])])}
+<br>
+<span style="display:inline-block; margin-top:2px;">
+{html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}... 
+</span>
+<br>
+<span style="color:#fbbf24; display:inline-block; margin-top:2px;">🎓 {html.escape(b.get('lesson','')[:30])}</span>
+</div>""", unsafe_allow_html=True)
                 with col_b2:
                     if st.button("x", key=f"del_{real_idx}"):
                         st.session_state.temp_blocks.pop(real_idx)
@@ -499,13 +502,11 @@ with tab_list:
                     t_esc = html.escape(b['title']).replace('\n', ' ')
                     r_esc = html.escape(b.get('reflection', '')).replace('\n', ' ')
                     
-                    st.markdown(f"""
-                    <div style="margin-bottom:8px;">
-                        <span class="brick {css_color}" style="display:inline-block; width:12px; height:12px; margin-right:5px;"></span>
-                        <strong>{t_esc}</strong> <small>({b['count']} blocks)</small><br>
-                        <span style="color:#ccc; margin-left:20px;">{r_esc or 'No reflection'}</span>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"""<div style="margin-bottom:8px;">
+<span class="brick {css_color}" style="display:inline-block; width:12px; height:12px; margin-right:5px;"></span>
+<strong>{t_esc}</strong> <small>({b['count']} blocks)</small><br>
+<span style="color:#ccc; margin-left:20px;">{r_esc or 'No reflection'}</span>
+</div>""", unsafe_allow_html=True)
 
                 # Additional Info (merged into this expander or separate, user asked for reflections specifically)
                 if row.get('NewIdeas'): st.info(f"💡 Ideas: {row['NewIdeas']}")
