@@ -272,7 +272,7 @@ tab_record, tab_list, tab_class = st.tabs(["📝 記録", "🧱 一覧", "📊 �
 
 # === TAB 1: RECORD ===
 with tab_record:
-    st.markdown("### 今日のブロックを積み上げる")
+    st.markdown("### Bricks")
     col_date, col_dummy = st.columns([1, 2])
     with col_date:
         rec_date = st.date_input("日付選択", datetime.now())
