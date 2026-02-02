@@ -572,7 +572,6 @@ with tab_class:
                 st.info("直近7日間のデータがありません。")
 
             st.markdown("---")
-            st.subheader("全期間・詳細フィルタ")
             
             st.subheader("全期間・詳細フィルタ")
             
