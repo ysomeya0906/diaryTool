@@ -596,16 +596,25 @@ with tab_class:
                             st.markdown(f'<div style="margin-bottom:8px;">{tag_html}</div>', unsafe_allow_html=True)
                         
                         # Details Grid
-                        c_ch, c_th, c_ac = st.columns(3)
-                        with c_ch:
-                            st.caption("Challenge")
-                            st.write(row.get('challenge') or "(記述なし)")
-                        with c_th:
-                            st.caption("Thoughts")
-                            st.write(row.get('thoughts') or "(記述なし)")
-                        with c_ac:
-                            st.caption("Action")
-                            st.write(row.get('action') or "(記述なし)")
+                        c = row.get('challenge')
+                        t = row.get('thoughts')
+                        a = row.get('action')
+                        r = row.get('reflection')
+                        
+                        # Legacy Fallback: If no STAR data but reflection exists, show reflection
+                        if not (c or t or a) and r:
+                            st.info(f"📝 **Reflection (Legacy):** {r}")
+                        else:
+                            c_ch, c_th, c_ac = st.columns(3)
+                            with c_ch:
+                                st.caption("Challenge")
+                                st.write(c or "(記述なし)")
+                            with c_th:
+                                st.caption("Thoughts")
+                                st.write(t or "(記述なし)")
+                            with c_ac:
+                                st.caption("Action")
+                                st.write(a or "(記述なし)")
                         
                         if row.get('lesson'):
                             st.info(f"🎓 **Lesson:** {row['lesson']}")
