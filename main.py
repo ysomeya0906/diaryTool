@@ -355,6 +355,7 @@ with tab_record:
                 placeholder="具体的に何をした？\n※具体的な数字(時間・金額・回数・人数)を添えるように",
                 help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。"
             )
+            lesson = st.text_area("この経験から得た教訓・学び (Lesson)", height=70, placeholder="一言でまとめると？")
             tags = st.multiselect("タグ付け", ["苦しい", "楽しい", "愛おしい", "悲しい"])
     
     if st.button("＋ 追加", type="primary"):
@@ -366,6 +367,7 @@ with tab_record:
                 "challenge": challenge,
                 "thoughts": thoughts,
                 "action": action,
+                "lesson": lesson,
                 "tags": tags
             })
 
@@ -393,7 +395,8 @@ with tab_record:
                     </div>
                     <div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:5px;">
                         {' '.join([f'<span style="background:#333; padding:1px 4px; border-radius:3px;">{t}</span>' for t in b.get('tags', [])])}
-                        {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}...
+                        {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}... <br>
+                        <span style="color:#fbbf24;">🎓 {html.escape(b.get('lesson','')[:30])}</span>
                     </div>
                     """, unsafe_allow_html=True)
                 with col_b2:
@@ -411,7 +414,7 @@ with tab_record:
     with col_d2:
         improvement_plan = st.text_area("明日以降の改善案", value=st.session_state.form_improvement, key="input_improvement", height=150)
 
-    daily_lesson = st.text_input("💡 この経験から得た教訓・学び (1行まとめ)", value=st.session_state.form_lesson, key="input_lesson")
+    # daily_lesson moved to block level
 
     with st.expander("その他メモ (アイデア・面白エピソード)"):
         new_ideas = st.text_area("💡 新しいアイデア", value=st.session_state.form_ideas, key="input_ideas")
@@ -420,7 +423,8 @@ with tab_record:
     
     if st.button("✅ 完了 (保存)", type="primary", use_container_width=True):
         if st.session_state.temp_blocks:
-            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan, daily_lesson):
+            # Pass empty string for daily_lesson to maintain schema compatibility
+            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan, ""):
                 st.success("Saved!")
                 st.balloons()
             else:
@@ -602,6 +606,9 @@ with tab_class:
                         with c_ac:
                             st.caption("Action")
                             st.write(row.get('action') or "(記述なし)")
+                        
+                        if row.get('lesson'):
+                            st.info(f"🎓 **Lesson:** {row['lesson']}")
 
             st.markdown("---")
             st.subheader("1日のまとめ (全期間リスト)")
@@ -691,6 +698,9 @@ with tab_class:
                             st.warning(f"**Thoughts**\n\n{sb.get('thoughts','(なし)')}")
                         with col_s3:
                             st.success(f"**Action**\n\n{sb.get('action','(なし)')}")
+                        
+                        if sb.get('lesson'):
+                            st.markdown(f"🎓 **Lesson:** {sb['lesson']}")
             else:
                 st.info("条件に一致するSTAR記録が見つかりません。")
 
