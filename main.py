@@ -401,18 +401,38 @@ with tab_record:
                 with col_b1:
                     # Compact view, removed fixed width
                     st.markdown(f"""
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span class="brick {css_class}">{b['category']}</span>
-                            <span style="font-size:0.9em; font-weight:bold;">{b['title']} <small style="font-weight:normal; color:#ccc;">({b['count']})</small></span>
-                        </div>
-                        <div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:10px; line-height:1.4;">
-                            <span style="color:#ffd700; margin-right:8px;">{'⭐' * b.get('rating', 3)}</span>
-                            {' '.join([f'<span style="background:#333; padding:1px 4px; border-radius:3px; margin-right:4px;">{t}</span>' for t in b.get('tags', [])])}
-                            <span style="display:inline-block; margin-top:2px; margin-left:8px;">
-                                {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}... 
-                            </span>
-                            <br>
-                            <span style="color:#fbbf24; display:inline-block; margin-top:2px;">🎓 {html.escape(b.get('lesson','')[:30])}</span>
+                        <div style="background-color:#1e293b; border-radius:8px; padding:12px; margin-bottom:8px; border:1px solid #334155;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="brick {css_class}">{b['category']}</span>
+                                    <span style="font-size:1.0em; font-weight:bold; color:#f8fafc;">{b['title']}</span>
+                                    <span style="font-size:0.8em; color:#94a3b8;">({b['count']} block{'s' if b['count'] > 1 else ''})</span>
+                                </div>
+                                <span style="color:#fbbf24; font-size:1.1em; letter-spacing:2px;">{'★' * b.get('rating', 3)}</span>
+                            </div>
+                            
+                            <div style="margin-bottom:8px;">
+                                {' '.join([f'<span style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:4px; font-size:0.75em; border:1px solid #475569;">{t}</span>' for t in b.get('tags', [])])}
+                            </div>
+                            
+                            <div style="display:grid; grid-template-columns: 1fr; gap:6px; font-size:0.9em; color:#e2e8f0;">
+                                <div style="display:flex; align-items:baseline;">
+                                    <span style="min-width:60px; color:#94a3b8; font-weight:bold; font-size:0.85em;">プラン</span>
+                                    <span style="flex:1;">{html.escape(b.get('challenge') or 'ー')}</span>
+                                </div>
+                                <div style="display:flex; align-items:baseline;">
+                                    <span style="min-width:60px; color:#94a3b8; font-weight:bold; font-size:0.85em;">ドゥ</span>
+                                    <span style="flex:1;">{html.escape(b.get('action') or 'ー')}</span>
+                                </div>
+                                <div style="display:flex; align-items:baseline;">
+                                    <span style="min-width:60px; color:#94a3b8; font-weight:bold; font-size:0.85em;">チェック</span>
+                                    <span style="flex:1;">{html.escape(b.get('thoughts') or 'ー')}</span>
+                                </div>
+                                <div style="display:flex; align-items:baseline;">
+                                    <span style="min-width:60px; color:#fbbf24; font-weight:bold; font-size:0.85em;">マナビ</span>
+                                    <span style="flex:1; color:#fcd34d; font-weight:500;">{html.escape(b.get('lesson') or 'ー')}</span>
+                                </div>
+                            </div>
                         </div>
                     """.replace('\n', '').replace('    ', ''), unsafe_allow_html=True)
                 with col_b2:
