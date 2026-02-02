@@ -163,7 +163,7 @@ def get_sheet():
         # Schema Definition
         EXPECTED_HEADERS = [
             "Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", 
-            "TotalBlocks", "Timestamp", "DailyReflection", "ImprovementPlan"
+            "TotalBlocks", "Timestamp", "DailyReflection", "ImprovementPlan", "DailyLesson"
         ]
         
         # 1. Check if sheet is empty
@@ -219,7 +219,7 @@ def load_all_data():
     except Exception as e:
         return pd.DataFrame()
 
-def save_daily_record(date, blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan):
+def save_daily_record(date, blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan, daily_lesson):
     sheet = get_sheet()
     if not sheet: return False
     try:
@@ -241,11 +241,12 @@ def save_daily_record(date, blocks, new_ideas, funny_ep, next_action, daily_refl
             sheet.update_cell(row_idx, 7, timestamp)
             sheet.update_cell(row_idx, 8, daily_reflection)
             sheet.update_cell(row_idx, 9, improvement_plan)
+            sheet.update_cell(row_idx, 10, daily_lesson)
         else:
             # Append
             sheet.append_row([
                 str(date), blocks_json, new_ideas, funny_ep, next_action, 
-                total_blocks, timestamp, daily_reflection, improvement_plan
+                total_blocks, timestamp, daily_reflection, improvement_plan, daily_lesson
             ])
         
         st.cache_data.clear()
@@ -264,6 +265,7 @@ if 'form_funny' not in st.session_state: st.session_state.form_funny = ""
 if 'form_next' not in st.session_state: st.session_state.form_next = ""
 if 'form_reflection' not in st.session_state: st.session_state.form_reflection = ""
 if 'form_improvement' not in st.session_state: st.session_state.form_improvement = ""
+if 'form_lesson' not in st.session_state: st.session_state.form_lesson = ""
 
 # --- App ---
 tab_record, tab_list, tab_class = st.tabs(["📝 記録", "🧱 一覧", "📊 分類"])
@@ -288,6 +290,7 @@ with tab_record:
                 st.session_state.form_next = row.get('NextAction', "")
                 st.session_state.form_reflection = row.get('DailyReflection', "")
                 st.session_state.form_improvement = row.get('ImprovementPlan', "")
+                st.session_state.form_lesson = row.get('DailyLesson', "")
             except:
                 st.session_state.temp_blocks = []
                 st.session_state.form_ideas = ""
@@ -295,6 +298,7 @@ with tab_record:
                 st.session_state.form_next = ""
                 st.session_state.form_reflection = ""
                 st.session_state.form_improvement = ""
+                st.session_state.form_lesson = ""
         else:
             # Clear if new date
             st.session_state.temp_blocks = []
@@ -303,6 +307,7 @@ with tab_record:
             st.session_state.form_next = ""
             st.session_state.form_reflection = ""
             st.session_state.form_improvement = ""
+            st.session_state.form_lesson = ""
         st.session_state.loaded_date = rec_date
 
     # Visual Progress Bar
@@ -345,13 +350,12 @@ with tab_record:
             challenge = st.text_area("直面した課題 (Challenge)", height=70, placeholder="どんな難しさに直面した？")
             thoughts = st.text_area("その時考えたこと (Thoughts)", height=70, placeholder="どう考えた？")
         with col_ex2:
-            action = st.text_area("とった行動 (Action)", height=70, placeholder="具体的に何をした？")
-            # Old reflection field mapping to thoughts or just kept as general memo if needed, 
-            # but user asked for "Thinking" field. Let's strictly follow the request:
-            # "直面した課題" (Challenge), "その時考えたこと" (Thoughts), "とった行動" (Action)
-            # We don't need a separate "reflection" field anymore if "Thoughts" covers it.
-            # But let's keep a generic note if they want, or just stick to the 3 requested.
-            # actually user asked: "直面した課題、その時考えたこと、とった各ブロックについて記録する欄"
+            action = st.text_area(
+                "とった行動 (Action)", height=70, 
+                placeholder="具体的に何をした？\n※具体的な数字(時間・金額・回数・人数)を添えるように",
+                help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。"
+            )
+            tags = st.multiselect("タグ付け", ["苦しい", "楽しい", "愛おしい", "悲しい"])
     
     if st.button("＋ 追加", type="primary"):
         if title:
@@ -361,8 +365,10 @@ with tab_record:
                 "count": count, 
                 "challenge": challenge,
                 "thoughts": thoughts,
-                "action": action
+                "action": action,
+                "tags": tags
             })
+
             st.toast(f" Added: {title}")
             st.rerun()
         else:
@@ -382,11 +388,11 @@ with tab_record:
                 with col_b1:
                     # Compact view, removed fixed width
                     st.markdown(f"""
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:2px;">
                         <span class="brick {css_class}">{b['category']}</span>
                         <span style="font-size:0.9em;"><b>{b['title']}</b> <small>({b['count']})</small></span>
                     </div>
                     <div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:5px;">
+                        {' '.join([f'<span style="background:#333; padding:1px 4px; border-radius:3px;">{t}</span>' for t in b.get('tags', [])])}
                         {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}...
                     </div>
                     """, unsafe_allow_html=True)
@@ -405,6 +411,8 @@ with tab_record:
     with col_d2:
         improvement_plan = st.text_area("明日以降の改善案", value=st.session_state.form_improvement, key="input_improvement", height=150)
 
+    daily_lesson = st.text_input("💡 この経験から得た教訓・学び (1行まとめ)", value=st.session_state.form_lesson, key="input_lesson")
+
     with st.expander("その他メモ (アイデア・面白エピソード)"):
         new_ideas = st.text_area("💡 新しいアイデア", value=st.session_state.form_ideas, key="input_ideas")
         funny_ep = st.text_area("🤣 面白エピソード", value=st.session_state.form_funny, key="input_funny")
@@ -412,7 +420,7 @@ with tab_record:
     
     if st.button("✅ 完了 (保存)", type="primary", use_container_width=True):
         if st.session_state.temp_blocks:
-            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan):
+            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan, daily_lesson):
                 st.success("Saved!")
                 st.balloons()
             else:
@@ -488,6 +496,7 @@ with tab_list:
                 if row.get('FunnyEpisodes'): st.success(f"🤣 Funny: {row['FunnyEpisodes']}")
                 if row.get('DailyReflection'): st.warning(f"🤔 反省: {row['DailyReflection']}")
                 if row.get('ImprovementPlan'): st.error(f"📈 改善: {row['ImprovementPlan']}")
+                if row.get('DailyLesson'): st.success(f"🎓 教訓: {row['DailyLesson']}")
                 if row.get('NextAction'): st.warning(f"🚀 Next: {row['NextAction']}")
             
             st.markdown("---")
@@ -562,6 +571,7 @@ with tab_class:
                     ))
                 )
                 st.altair_chart(chart, use_container_width=True)
+
             else:
                 target_df = df_b[df_b['category'] == cat_filter]
                 total_val = target_df['count'].sum()
@@ -569,17 +579,29 @@ with tab_class:
                 # Independent, stylish card for Total
                 st.metric(label=f"Total {cat_filter} Blocks", value=total_val)
                 
-                # Use st.table to allow full text wrapping
-                st.table(
-                    target_df[['Date', 'title', 'count', 'reflection']].rename(
-                        columns={
-                            'Date': '日付',
-                            'title': 'タイトル',
-                            'count': '数',
-                            'reflection': '感想・気づき'
-                        }
-                    )
-                )
+                # Detailed Card View
+                for _, row in target_df.iterrows():
+                    with st.container(border=True):
+                        # Header: Date and Title
+                        st.markdown(f"**{row['Date']}** | {row['title']} ({row['count']} blocks)")
+                        
+                        # Tags
+                        tags = row.get('tags', [])
+                        if tags:
+                            tag_html = ' '.join([f'<span style="background:#334; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; margin-right:4px;">{t}</span>' for t in tags])
+                            st.markdown(f'<div style="margin-bottom:8px;">{tag_html}</div>', unsafe_allow_html=True)
+                        
+                        # Details Grid
+                        c_ch, c_th, c_ac = st.columns(3)
+                        with c_ch:
+                            st.caption("Challenge")
+                            st.write(row.get('challenge') or "(記述なし)")
+                        with c_th:
+                            st.caption("Thoughts")
+                            st.write(row.get('thoughts') or "(記述なし)")
+                        with c_ac:
+                            st.caption("Action")
+                            st.write(row.get('action') or "(記述なし)")
 
             st.markdown("---")
             st.subheader("1日のまとめ (全期間リスト)")
@@ -681,7 +703,7 @@ with st.sidebar:
             s.clear()
             s.append_row([
                 "Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", 
-                "TotalBlocks", "Timestamp", "DailyReflection", "ImprovementPlan"
+                "TotalBlocks", "Timestamp", "DailyReflection", "ImprovementPlan", "DailyLesson"
             ])
             st.cache_data.clear()
             st.success("Reset Done!")
