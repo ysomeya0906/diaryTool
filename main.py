@@ -336,11 +336,12 @@ with tab_record:
     st.markdown("---")
     st.subheader("🧱 ブロックを追加")
     
-    c1, c2 = st.columns([1, 1])
+    c1, c2, c3 = st.columns([2, 1, 3])
     with c1:
         cat = st.selectbox("分類", list(CATEGORIES.keys()))
-        count = st.number_input("ブロック数 (1=30分)", min_value=1, value=1)
     with c2:
+        count = st.number_input("ブロック数 (1=30分)", min_value=1, value=1)
+    with c3:
         title = st.text_input("したこと (タイトル)")
     
     # Detailed inputs for STAR method
