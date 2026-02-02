@@ -161,7 +161,10 @@ def get_sheet():
             sheet = sh.sheet1
         
         # Schema Definition
-        EXPECTED_HEADERS = ["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", "TotalBlocks", "Timestamp"]
+        EXPECTED_HEADERS = [
+            "Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", 
+            "TotalBlocks", "Timestamp", "DailyReflection", "ImprovementPlan"
+        ]
         
         # 1. Check if sheet is empty
         if not sheet.get_all_values():
@@ -216,7 +219,7 @@ def load_all_data():
     except Exception as e:
         return pd.DataFrame()
 
-def save_daily_record(date, blocks, new_ideas, funny_ep, next_action):
+def save_daily_record(date, blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan):
     sheet = get_sheet()
     if not sheet: return False
     try:
@@ -236,9 +239,14 @@ def save_daily_record(date, blocks, new_ideas, funny_ep, next_action):
             sheet.update_cell(row_idx, 5, next_action)
             sheet.update_cell(row_idx, 6, total_blocks)
             sheet.update_cell(row_idx, 7, timestamp)
+            sheet.update_cell(row_idx, 8, daily_reflection)
+            sheet.update_cell(row_idx, 9, improvement_plan)
         else:
             # Append
-            sheet.append_row([str(date), blocks_json, new_ideas, funny_ep, next_action, total_blocks, timestamp])
+            sheet.append_row([
+                str(date), blocks_json, new_ideas, funny_ep, next_action, 
+                total_blocks, timestamp, daily_reflection, improvement_plan
+            ])
         
         st.cache_data.clear()
         return True
@@ -254,6 +262,8 @@ if 'loaded_date' not in st.session_state:
 if 'form_ideas' not in st.session_state: st.session_state.form_ideas = ""
 if 'form_funny' not in st.session_state: st.session_state.form_funny = ""
 if 'form_next' not in st.session_state: st.session_state.form_next = ""
+if 'form_reflection' not in st.session_state: st.session_state.form_reflection = ""
+if 'form_improvement' not in st.session_state: st.session_state.form_improvement = ""
 
 # --- App ---
 tab_record, tab_list, tab_class = st.tabs(["📝 記録", "🧱 一覧", "📊 分類"])
@@ -276,17 +286,23 @@ with tab_record:
                 st.session_state.form_ideas = row.get('NewIdeas', "")
                 st.session_state.form_funny = row.get('FunnyEpisodes', "")
                 st.session_state.form_next = row.get('NextAction', "")
+                st.session_state.form_reflection = row.get('DailyReflection', "")
+                st.session_state.form_improvement = row.get('ImprovementPlan', "")
             except:
                 st.session_state.temp_blocks = []
                 st.session_state.form_ideas = ""
                 st.session_state.form_funny = ""
                 st.session_state.form_next = ""
+                st.session_state.form_reflection = ""
+                st.session_state.form_improvement = ""
         else:
             # Clear if new date
             st.session_state.temp_blocks = []
             st.session_state.form_ideas = ""
             st.session_state.form_funny = ""
             st.session_state.form_next = ""
+            st.session_state.form_reflection = ""
+            st.session_state.form_improvement = ""
         st.session_state.loaded_date = rec_date
 
     # Visual Progress Bar
@@ -321,12 +337,31 @@ with tab_record:
         count = st.number_input("ブロック数 (1=30分)", min_value=1, value=1)
     with c2:
         title = st.text_input("したこと (タイトル)")
-        reflection = st.text_area("感想・気づき", height=100)
-        
+    
+    # Detailed inputs for STAR method
+    with st.expander("詳細入力（課題・思考・行動）", expanded=True):
+        col_ex1, col_ex2 = st.columns(2)
+        with col_ex1:
+            challenge = st.text_area("直面した課題 (Challenge)", height=70, placeholder="どんな難しさに直面した？")
+            thoughts = st.text_area("その時考えたこと (Thoughts)", height=70, placeholder="どう考えた？")
+        with col_ex2:
+            action = st.text_area("とった行動 (Action)", height=70, placeholder="具体的に何をした？")
+            # Old reflection field mapping to thoughts or just kept as general memo if needed, 
+            # but user asked for "Thinking" field. Let's strictly follow the request:
+            # "直面した課題" (Challenge), "その時考えたこと" (Thoughts), "とった行動" (Action)
+            # We don't need a separate "reflection" field anymore if "Thoughts" covers it.
+            # But let's keep a generic note if they want, or just stick to the 3 requested.
+            # actually user asked: "直面した課題、その時考えたこと、とった各ブロックについて記録する欄"
+    
     if st.button("＋ 追加", type="primary"):
         if title:
             st.session_state.temp_blocks.append({
-                "category": cat, "title": title, "count": count, "reflection": reflection
+                "category": cat, 
+                "title": title, 
+                "count": count, 
+                "challenge": challenge,
+                "thoughts": thoughts,
+                "action": action
             })
             st.toast(f" Added: {title}")
             st.rerun()
@@ -351,6 +386,9 @@ with tab_record:
                         <span class="brick {css_class}">{b['category']}</span>
                         <span style="font-size:0.9em;"><b>{b['title']}</b> <small>({b['count']})</small></span>
                     </div>
+                    <div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:5px;">
+                        {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}...
+                    </div>
                     """, unsafe_allow_html=True)
                 with col_b2:
                     if st.button("x", key=f"del_{real_idx}"):
@@ -359,14 +397,22 @@ with tab_record:
 
     st.markdown("---")
     st.subheader("1日のまとめ")
-    # Use key to bind to session state for auto-load consistency
-    new_ideas = st.text_area("💡 新しいアイデア", value=st.session_state.form_ideas, key="input_ideas")
-    funny_ep = st.text_area("🤣 面白エピソード", value=st.session_state.form_funny, key="input_funny")
-    next_action = st.text_area("🚀 明日以降活かしたいこと", value=st.session_state.form_next, key="input_next")
+    
+    # Primary Reflection Fields
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        daily_reflection = st.text_area("今日の反省", value=st.session_state.form_reflection, key="input_reflection", height=150)
+    with col_d2:
+        improvement_plan = st.text_area("明日以降の改善案", value=st.session_state.form_improvement, key="input_improvement", height=150)
+
+    with st.expander("その他メモ (アイデア・面白エピソード)"):
+        new_ideas = st.text_area("💡 新しいアイデア", value=st.session_state.form_ideas, key="input_ideas")
+        funny_ep = st.text_area("🤣 面白エピソード", value=st.session_state.form_funny, key="input_funny")
+        next_action = st.text_area("🚀 (旧) 明日以降活かしたいこと", value=st.session_state.form_next, key="input_next")
     
     if st.button("✅ 完了 (保存)", type="primary", use_container_width=True):
         if st.session_state.temp_blocks:
-            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action):
+            if save_daily_record(rec_date, st.session_state.temp_blocks, new_ideas, funny_ep, next_action, daily_reflection, improvement_plan):
                 st.success("Saved!")
                 st.balloons()
             else:
@@ -440,6 +486,8 @@ with tab_list:
                 # Additional Info (merged into this expander or separate, user asked for reflections specifically)
                 if row.get('NewIdeas'): st.info(f"💡 Ideas: {row['NewIdeas']}")
                 if row.get('FunnyEpisodes'): st.success(f"🤣 Funny: {row['FunnyEpisodes']}")
+                if row.get('DailyReflection'): st.warning(f"🤔 反省: {row['DailyReflection']}")
+                if row.get('ImprovementPlan'): st.error(f"📈 改善: {row['ImprovementPlan']}")
                 if row.get('NextAction'): st.warning(f"🚀 Next: {row['NextAction']}")
             
             st.markdown("---")
@@ -583,6 +631,47 @@ with tab_class:
                 else:
                     st.info("データがありません")
 
+            st.markdown("---")
+            st.subheader("🎓 就活・成長記録 (STAR分析)")
+            st.caption("直面した課題(Challenge)、思考(Thoughts)、行動(Action)を振り返ります。")
+            
+            search_query = st.text_input("🔍 キーワード検索 (課題・思考・行動)", placeholder="例: チームワーク, 解決, 失敗")
+            
+            # Filter blocks with C/T/A data
+            star_blocks = []
+            for _, row in df_c.iterrows():
+                try: blocks = json.loads(row['BlocksJSON'])
+                except: continue
+                d = row['Date']
+                for b in blocks:
+                    # Check if block has meaningful STAR content
+                    c = b.get('challenge', '')
+                    t = b.get('thoughts', '')
+                    a = b.get('action', '')
+                    if c or t or a:
+                        # Search filter
+                        full_text = f"{b['title']} {c} {t} {a}"
+                        if search_query and search_query.lower() not in full_text.lower():
+                            continue
+                            
+                        b['Date'] = d
+                        star_blocks.append(b)
+            
+            if star_blocks:
+                st.write(f"Found {len(star_blocks)} records")
+                for sb in star_blocks:
+                    with st.container(border=True):
+                        st.markdown(f"**{sb['Date']}** - {sb['title']}")
+                        col_s1, col_s2, col_s3 = st.columns(3)
+                        with col_s1:
+                            st.info(f"**Challenge**\n\n{sb.get('challenge','(なし)')}")
+                        with col_s2:
+                            st.warning(f"**Thoughts**\n\n{sb.get('thoughts','(なし)')}")
+                        with col_s3:
+                            st.success(f"**Action**\n\n{sb.get('action','(なし)')}")
+            else:
+                st.info("条件に一致するSTAR記録が見つかりません。")
+
 # --- Sidebar ---
 with st.sidebar:
     st.markdown("---")
@@ -590,7 +679,10 @@ with st.sidebar:
         s = get_sheet()
         if s:
             s.clear()
-            s.append_row(["Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", "TotalBlocks", "Timestamp"])
+            s.append_row([
+                "Date", "BlocksJSON", "NewIdeas", "FunnyEpisodes", "NextAction", 
+                "TotalBlocks", "Timestamp", "DailyReflection", "ImprovementPlan"
+            ])
             st.cache_data.clear()
             st.success("Reset Done!")
             st.rerun()
