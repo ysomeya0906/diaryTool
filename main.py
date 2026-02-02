@@ -345,23 +345,27 @@ with tab_record:
     
     # Detailed inputs for STAR method
     with st.expander("詳細入力（課題・思考・行動）", expanded=True):
-        col_ex1, col_ex2 = st.columns(2)
-        with col_ex1:
+        # 2-Column Smart Layout
+        col_L, col_R = st.columns(2)
+        
+        with col_L:
             challenge = st.text_area("直面した課題 (Challenge)", height=70, placeholder="どんな難しさに直面した？")
             thoughts = st.text_area("その時考えたこと (Thoughts)", height=70, placeholder="どう考えた？")
-        with col_ex2:
+        
+        with col_R:
             action = st.text_area(
                 "とった行動 (Action)", height=70, 
-                placeholder="具体的に何をした？\n※具体的な数字(時間・金額・回数・人数)を添えるように",
+                placeholder="具体的に何をした？\n※数値を添えてください",
                 help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。"
             )
             lesson = st.text_area("この経験から得た教訓・学び (Lesson)", height=70, placeholder="一言でまとめると？")
             
-            c_tag, c_rate = st.columns([2, 1])
-            with c_tag:
-                tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ"])
-            with c_rate:
-                rating = st.selectbox("満足度 (星)", [1, 2, 3, 4, 5], index=2, format_func=lambda x: "⭐" * x)
+        # Tags & Rating on one row below
+        c_tag, c_rate = st.columns([3, 1])
+        with c_tag:
+            tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ"])
+        with c_rate:
+            rating = st.selectbox("満足度", [1, 2, 3, 4, 5], index=2, format_func=lambda x: "⭐" * x)
     
     if st.button("＋ 追加", type="primary"):
         if title:
@@ -600,9 +604,15 @@ with tab_class:
             final_rows = []
             for _, r in filtered_df.iterrows():
                 # Rating Check
-                r_val = r.get('rating', 0) # Default 0 if missing
-                if r_val < rate_filter:
-                    continue
+                r_val = r.get('rating') # None if missing (Legacy)
+                
+                if rate_filter == 1:
+                    # Filter is 1 (default): Show all (Legacy + Rated>=1)
+                    pass
+                else:
+                    # Filter > 1: Strict Check. MUST be rated and >= filter
+                    if r_val is None or r_val < rate_filter:
+                        continue
                 
                 # Tag Check (If tags selected)
                 if tag_filter:
