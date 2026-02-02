@@ -364,7 +364,7 @@ with tab_record:
         # Tags & Rating on one row below
         c_tag, c_rate = st.columns([3, 1])
         with c_tag:
-            tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ"])
+            tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ","虚無"])
         with c_rate:
             rating = st.selectbox("満足度", [1, 2, 3, 4, 5], index=2, format_func=lambda x: "⭐" * x)
     
