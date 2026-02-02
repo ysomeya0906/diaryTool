@@ -356,7 +356,7 @@ with tab_record:
         with col_R:
             action = st.text_area(
                 "とった行動 (Action)", height=70, 
-                placeholder="具体的に何をした？\n※数値を添えてください",
+                placeholder="具体的に何をした？\n※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。",
                 help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。"
             )
             lesson = st.text_area("この経験から得た教訓・学び (Lesson)", height=70, placeholder="一言でまとめると？")
