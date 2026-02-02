@@ -356,7 +356,12 @@ with tab_record:
                 help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。"
             )
             lesson = st.text_area("この経験から得た教訓・学び (Lesson)", height=70, placeholder="一言でまとめると？")
-            tags = st.multiselect("タグ付け", ["苦しい", "楽しい", "愛おしい", "悲しい"])
+            
+            c_tag, c_rate = st.columns([2, 1])
+            with c_tag:
+                tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ"])
+            with c_rate:
+                rating = st.selectbox("満足度 (星)", [1, 2, 3, 4, 5], index=2, format_func=lambda x: "⭐" * x)
     
     if st.button("＋ 追加", type="primary"):
         if title:
@@ -368,7 +373,8 @@ with tab_record:
                 "thoughts": thoughts,
                 "action": action,
                 "lesson": lesson,
-                "tags": tags
+                "tags": tags,
+                "rating": rating
             })
 
             st.toast(f" Added: {title}")
@@ -394,6 +400,7 @@ with tab_record:
                         <span style="font-size:0.9em;"><b>{b['title']}</b> <small>({b['count']})</small></span>
                     </div>
                     <div style="font-size:0.8em; color:#aaa; margin-left:60px; margin-bottom:5px;">
+                        <span style="color:#ffd700; margin-right:8px;">{'⭐' * b.get('rating', 3)}</span>
                         {' '.join([f'<span style="background:#333; padding:1px 4px; border-radius:3px;">{t}</span>' for t in b.get('tags', [])])}
                         {html.escape(b.get('challenge','')[:20])}... / {html.escape(b.get('thoughts','')[:20])}... <br>
                         <span style="color:#fbbf24;">🎓 {html.escape(b.get('lesson','')[:30])}</span>
@@ -562,9 +569,56 @@ with tab_class:
             st.markdown("---")
             st.subheader("全期間・詳細フィルタ")
             
-            cat_filter = st.selectbox("カテゴリ絞り込み", ["All"] + list(CATEGORIES.keys()))
+            st.subheader("全期間・詳細フィルタ")
             
-            if cat_filter == "All":
+            # Filters
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                cat_filter = st.selectbox("カテゴリ", ["All"] + list(CATEGORIES.keys()))
+            with col_f2:
+                # Filter by Tag (multiselect, logical OR or AND? User asked for "Happy only" etc. Usually OR within tags, AND across fields)
+                # Let's simple check: if any selected tag is present.
+                tag_filter = st.multiselect("タグ絞り込み", ["楽しい", "悔しい", "感動", "イライラ"])
+            with col_f3:
+                # Minimum Rating Filter
+                rate_filter = st.slider("★ 以上の評価", 1, 5, 1)
+
+            # Apply Filters
+            filtered_df = df_b.copy()
+            
+            # 1. Category
+            if cat_filter != "All":
+                filtered_df = filtered_df[filtered_df['category'] == cat_filter]
+                
+            # 2. Rating (Assuming 'rating' key exists, default to 0 if not key present but we want to show all legacies? 
+            # Legacy blocks don't have rating. Let's treat missing rating as 3 (neutral) or 0? 
+            # If user filters for 5 stars, legacy shouldn't show. If 1 star, legacy (undef) might show?
+            # Safer to treat None as 3 (average) or hide? Let's treat as 0 for strict filtering.)
+            # Actually, let's fillna with 3 for display but 0 for filtering if strict. 
+            # Let's iterate rows to filter since tags are list.
+            
+            final_rows = []
+            for _, r in filtered_df.iterrows():
+                # Rating Check
+                r_val = r.get('rating', 0) # Default 0 if missing
+                if r_val < rate_filter:
+                    continue
+                
+                # Tag Check (If tags selected)
+                if tag_filter:
+                    r_tags = r.get('tags', [])
+                    # Check intersection. If any selected tag matches any row tag -> Keep.
+                    # Or User wants "Only Fun", implies Exact Match? 
+                    # Usually "Contains Fun" is best.
+                    if not set(tag_filter).intersection(set(r_tags)):
+                        continue
+                
+                final_rows.append(r)
+            
+            target_df = pd.DataFrame(final_rows)
+
+            if cat_filter == "All" and not tag_filter and rate_filter == 1:
+                # Show aggregate if no complex filter
                 stats = df_b.groupby("category")['count'].sum().reset_index()
                 chart = alt.Chart(stats).mark_bar().encode(
                     x='category',
@@ -575,49 +629,51 @@ with tab_class:
                     ))
                 )
                 st.altair_chart(chart, use_container_width=True)
-
             else:
-                target_df = df_b[df_b['category'] == cat_filter]
-                total_val = target_df['count'].sum()
-                
-                # Independent, stylish card for Total
-                st.metric(label=f"Total {cat_filter} Blocks", value=total_val)
-                
-                # Detailed Card View
-                for _, row in target_df.iterrows():
-                    with st.container(border=True):
-                        # Header: Date and Title
-                        st.markdown(f"**{row['Date']}** | {row['title']} ({row['count']} blocks)")
-                        
-                        # Tags
-                        tags = row.get('tags', [])
-                        if tags:
-                            tag_html = ' '.join([f'<span style="background:#334; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; margin-right:4px;">{t}</span>' for t in tags])
-                            st.markdown(f'<div style="margin-bottom:8px;">{tag_html}</div>', unsafe_allow_html=True)
-                        
-                        # Details Grid
-                        c = row.get('challenge')
-                        t = row.get('thoughts')
-                        a = row.get('action')
-                        r = row.get('reflection')
-                        
-                        # Legacy Fallback: If no STAR data but reflection exists, show reflection
-                        if not (c or t or a) and r:
-                            st.info(f"📝 **Reflection (Legacy):** {r}")
-                        else:
-                            c_ch, c_th, c_ac = st.columns(3)
-                            with c_ch:
-                                st.caption("Challenge")
-                                st.write(c or "(記述なし)")
-                            with c_th:
-                                st.caption("Thoughts")
-                                st.write(t or "(記述なし)")
-                            with c_ac:
-                                st.caption("Action")
-                                st.write(a or "(記述なし)")
-                        
-                        if row.get('lesson'):
-                            st.info(f"🎓 **Lesson:** {row['lesson']}")
+                if target_df.empty:
+                    st.info("条件に一致するブロックはありません。")
+                else:
+                    total_val = target_df['count'].sum() if 'count' in target_df.columns else 0
+                    
+                    # Independent, stylish card for Total
+                    st.metric(label=f"Total Blocks (Filtered)", value=total_val)
+                    
+                    # Detailed Card View
+                    for _, row in target_df.iterrows():
+                        with st.container(border=True):
+                            # Header: Date, Title, Rating
+                            rating_stars = "⭐" * row.get('rating', 0)
+                            st.markdown(f"**{row['Date']}** | {rating_stars} **{row['title']}** ({row['count']} blocks)")
+                            
+                            # Tags
+                            tags = row.get('tags', [])
+                            if tags:
+                                tag_html = ' '.join([f'<span style="background:#334; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.8em; margin-right:4px;">{t}</span>' for t in tags])
+                                st.markdown(f'<div style="margin-bottom:8px;">{tag_html}</div>', unsafe_allow_html=True)
+                            
+                            # Details Grid
+                            c = row.get('challenge')
+                            t = row.get('thoughts')
+                            a = row.get('action')
+                            r = row.get('reflection')
+                            
+                            # Legacy Fallback
+                            if not (c or t or a) and r:
+                                st.info(f"📝 **Reflection (Legacy):** {r}")
+                            else:
+                                c_ch, c_th, c_ac = st.columns(3)
+                                with c_ch:
+                                    st.caption("Challenge")
+                                    st.write(c or "(記述なし)")
+                                with c_th:
+                                    st.caption("Thoughts")
+                                    st.write(t or "(記述なし)")
+                                with c_ac:
+                                    st.caption("Action")
+                                    st.write(a or "(記述なし)")
+                            
+                            if row.get('lesson'):
+                                st.info(f"🎓 **Lesson:** {row['lesson']}")
 
             st.markdown("---")
             st.subheader("1日のまとめ (全期間リスト)")
