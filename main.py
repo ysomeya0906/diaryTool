@@ -267,6 +267,19 @@ if 'form_reflection' not in st.session_state: st.session_state.form_reflection =
 if 'form_improvement' not in st.session_state: st.session_state.form_improvement = ""
 if 'form_lesson' not in st.session_state: st.session_state.form_lesson = ""
 
+# Block editing state
+if 'edit_target_idx' not in st.session_state: st.session_state.edit_target_idx = None
+if 'form_title' not in st.session_state: st.session_state.form_title = ""
+if 'form_count' not in st.session_state: st.session_state.form_count = 1
+if 'form_cat' not in st.session_state: st.session_state.form_cat = list(CATEGORIES.keys())[0]
+if 'form_challenge' not in st.session_state: st.session_state.form_challenge = ""
+if 'form_thoughts' not in st.session_state: st.session_state.form_thoughts = ""
+if 'form_action' not in st.session_state: st.session_state.form_action = ""
+if 'form_lesson_block' not in st.session_state: st.session_state.form_lesson_block = ""
+if 'form_tags' not in st.session_state: st.session_state.form_tags = []
+if 'form_rating' not in st.session_state: st.session_state.form_rating = 3
+if 'quick_mode' not in st.session_state: st.session_state.quick_mode = False
+
 # --- App ---
 tab_record, tab_list, tab_class = st.tabs(["📝 記録", "🧱 一覧", "📊 分類"])
 
@@ -334,43 +347,63 @@ with tab_record:
 
     # Input Form
     st.markdown("---")
-    st.subheader("🧱 ブロックを追加")
     
+    col_head_1, col_head_2 = st.columns([3, 1])
+    with col_head_1:
+         st.subheader("🧱 ブロックを追加")
+    with col_head_2:
+        # Quick Mode Toggle
+        is_quick = st.toggle("⚡ Quick Mode", value=st.session_state.quick_mode, key="quick_mode_toggle")
+        st.session_state.quick_mode = is_quick
+
     c1, c2, c3 = st.columns([2, 1, 3])
     with c1:
-        cat = st.selectbox("分類", list(CATEGORIES.keys()))
+        cat = st.selectbox("分類", list(CATEGORIES.keys()), key="input_cat", index=list(CATEGORIES.keys()).index(st.session_state.form_cat) if st.session_state.form_cat in CATEGORIES else 0)
     with c2:
-        count = st.number_input("ブロック数 (1=30分)", min_value=1, value=1)
+        count = st.number_input("ブロック数 (1=30分)", min_value=1, value=st.session_state.form_count, key="input_count")
     with c3:
-        title = st.text_input("したこと (タイトル)")
+        title = st.text_input("したこと (タイトル)", value=st.session_state.form_title, key="input_title")
     
-    # Detailed inputs for STAR method
-    with st.expander("詳細入力（課題・思考・行動）", expanded=True):
-        # 2-Column Smart Layout
-        col_L, col_R = st.columns(2)
-        
-        with col_L:
-            challenge = st.text_area("直面した課題 (Challenge)", height=70, placeholder="どんな難しさに直面した？")
-            thoughts = st.text_area("その時考えたこと (Thoughts)", height=70, placeholder="どう考えた？")
-        
-        with col_R:
-            action = st.text_area(
-                "とった行動 (Action)", height=70, 
-                placeholder="具体的に何をした？\n※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。",
-                help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。"
-            )
-            lesson = st.text_area("この経験から得た教訓・学び (Lesson)", height=70, placeholder="一言でまとめると？")
+    # Detailed inputs for STAR method - Hide in Quick Mode
+    if not is_quick:
+        with st.expander("詳細入力（課題・思考・行動）", expanded=True):
+            # 2-Column Smart Layout
+            col_L, col_R = st.columns(2)
             
-        # Tags & Rating on one row below
-        c_tag, c_rate = st.columns([3, 1])
-        with c_tag:
-            tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ","虚無"])
-        with c_rate:
-            rating = st.selectbox("満足度", [1, 2, 3, 4, 5], index=2, format_func=lambda x: "⭐" * x)
+            with col_L:
+                challenge = st.text_area("直面した課題 (Challenge)", height=70, placeholder="どんな難しさに直面した？", value=st.session_state.form_challenge, key="input_challenge")
+                thoughts = st.text_area("その時考えたこと (Thoughts)", height=70, placeholder="どう考えた？", value=st.session_state.form_thoughts, key="input_thoughts")
+            
+            with col_R:
+                action = st.text_area(
+                    "とった行動 (Action)", height=70, 
+                    placeholder="具体的に何をした？\n※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。",
+                    help="※具体的な数字(時間・金額・回数・人数)を添えるようにしてください。",
+                    value=st.session_state.form_action,
+                    key="input_action"
+                )
+                lesson = st.text_area("この経験から得た教訓・学び (Lesson)", height=70, placeholder="一言でまとめると？", value=st.session_state.form_lesson_block, key="input_lesson_block")
+                
+            # Tags & Rating on one row below
+            c_tag, c_rate = st.columns([3, 1])
+            with c_tag:
+                tags = st.multiselect("感情タグ", ["楽しい", "悔しい", "感動", "イライラ","虚無"], default=st.session_state.form_tags, key="input_tags")
+            with c_rate:
+                rating = st.selectbox("満足度", [1, 2, 3, 4, 5], index=st.session_state.form_rating-1, format_func=lambda x: "⭐" * x, key="input_rating")
+    else:
+        # Defaults for Quick Mode
+        challenge = ""
+        thoughts = ""
+        action = ""
+        lesson = ""
+        tags = []
+        rating = 3
     
-    if st.button("＋ 追加", type="primary"):
+    btn_label = "＋ 追加" if st.session_state.edit_target_idx is None else "🔄 更新"
+    
+    if st.button(btn_label, type="primary"):
         if title:
-            st.session_state.temp_blocks.append({
+            new_block = {
                 "category": cat, 
                 "title": title, 
                 "count": count, 
@@ -380,9 +413,31 @@ with tab_record:
                 "lesson": lesson,
                 "tags": tags,
                 "rating": rating
-            })
-
-            st.toast(f" Added: {title}")
+            }
+            
+            if st.session_state.edit_target_idx is not None:
+                # Update existing
+                idx = st.session_state.edit_target_idx
+                if 0 <= idx < len(st.session_state.temp_blocks):
+                    st.session_state.temp_blocks[idx] = new_block
+                    st.toast(f" Updated: {title}")
+                # Reset edit state
+                st.session_state.edit_target_idx = None
+            else:
+                # Add new
+                st.session_state.temp_blocks.append(new_block)
+                st.toast(f" Added: {title}")
+            
+            # Reset Form
+            st.session_state.form_title = ""
+            st.session_state.form_count = 1
+            st.session_state.form_challenge = ""
+            st.session_state.form_thoughts = ""
+            st.session_state.form_action = ""
+            st.session_state.form_lesson_block = ""
+            st.session_state.form_tags = []
+            st.session_state.form_rating = 3
+            
             st.rerun()
         else:
             st.error("タイトルを入力してください")
@@ -436,9 +491,36 @@ with tab_record:
                         </div>
                     """.replace('\n', '').replace('    ', ''), unsafe_allow_html=True)
                 with col_b2:
-                    if st.button("x", key=f"del_{real_idx}"):
-                        st.session_state.temp_blocks.pop(real_idx)
-                        st.rerun()
+                    col_act1, col_act2 = st.columns(2)
+                    with col_act1:
+                         if st.button("🖊️", key=f"edit_{real_idx}", help="編集"):
+                            # Load into form
+                            b_target = st.session_state.temp_blocks[real_idx]
+                            st.session_state.form_cat = b_target.get('category', list(CATEGORIES.keys())[0])
+                            st.session_state.form_count = b_target.get('count', 1)
+                            st.session_state.form_title = b_target.get('title', '')
+                            st.session_state.form_challenge = b_target.get('challenge', '')
+                            st.session_state.form_thoughts = b_target.get('thoughts', '')
+                            st.session_state.form_action = b_target.get('action', '')
+                            st.session_state.form_lesson_block = b_target.get('lesson', '')
+                            st.session_state.form_tags = b_target.get('tags', [])
+                            st.session_state.form_rating = b_target.get('rating', 3)
+                            
+                            st.session_state.edit_target_idx = real_idx
+                            
+                            # If editing, we might need to show details to allow filling them
+                            # If it was a quick block (no details), we probably want to see details now
+                            st.session_state.quick_mode = False 
+                            
+                            st.rerun()
+                            
+                    with col_act2:
+                        if st.button("x", key=f"del_{real_idx}", help="削除"):
+                            st.session_state.temp_blocks.pop(real_idx)
+                            # If deleting the one being edited, reset edit state
+                            if st.session_state.edit_target_idx == real_idx:
+                                st.session_state.edit_target_idx = None
+                            st.rerun()
 
     st.markdown("---")
     st.subheader("1日のまとめ")
