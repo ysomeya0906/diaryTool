@@ -495,9 +495,11 @@ with tab_record:
                     col_act1, col_act2 = st.columns(2)
                     with col_act1:
                          # Changed to explicit "Edit" text/icon for clarity
-                         if st.button("🖊", key=f"edit_{real_idx}", help="編集"):
+                        if st.button("🖊", key=f"edit_{real_idx}", help="編集"):
                             # Load into form
                             b_target = st.session_state.temp_blocks[real_idx]
+                            
+                            # Update Form Variables (Defaults)
                             st.session_state.form_cat = b_target.get('category', list(CATEGORIES.keys())[0])
                             st.session_state.form_count = b_target.get('count', 1)
                             st.session_state.form_title = b_target.get('title', '')
@@ -507,6 +509,17 @@ with tab_record:
                             st.session_state.form_lesson_block = b_target.get('lesson', '')
                             st.session_state.form_tags = b_target.get('tags', [])
                             st.session_state.form_rating = b_target.get('rating', 3)
+                            
+                            # Force Update Widgets via Session State Keys
+                            st.session_state['input_cat'] = st.session_state.form_cat
+                            st.session_state['input_count'] = st.session_state.form_count
+                            st.session_state['input_title'] = st.session_state.form_title
+                            st.session_state['input_challenge'] = st.session_state.form_challenge
+                            st.session_state['input_thoughts'] = st.session_state.form_thoughts
+                            st.session_state['input_action'] = st.session_state.form_action
+                            st.session_state['input_lesson_block'] = st.session_state.form_lesson_block
+                            st.session_state['input_tags'] = st.session_state.form_tags
+                            st.session_state['input_rating'] = st.session_state.form_rating
                             
                             st.session_state.edit_target_idx = real_idx
                             st.session_state.quick_mode = False 
