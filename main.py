@@ -452,7 +452,8 @@ with tab_record:
                 real_idx = len(st.session_state.temp_blocks) - 1 - i
                 
                 css_class = get_cat_color(b['category'])
-                col_b1, col_b2 = st.columns([4, 1])
+                # Adjusted column ratio to give more space for buttons
+                col_b1, col_b2 = st.columns([3, 1])
                 with col_b1:
                     # Compact view, removed fixed width
                     st.markdown(f"""
@@ -493,7 +494,8 @@ with tab_record:
                 with col_b2:
                     col_act1, col_act2 = st.columns(2)
                     with col_act1:
-                         if st.button("🖊️", key=f"edit_{real_idx}", help="編集"):
+                         # Changed to explicit "Edit" text/icon for clarity
+                         if st.button("🖊", key=f"edit_{real_idx}", help="編集"):
                             # Load into form
                             b_target = st.session_state.temp_blocks[real_idx]
                             st.session_state.form_cat = b_target.get('category', list(CATEGORIES.keys())[0])
@@ -507,17 +509,13 @@ with tab_record:
                             st.session_state.form_rating = b_target.get('rating', 3)
                             
                             st.session_state.edit_target_idx = real_idx
-                            
-                            # If editing, we might need to show details to allow filling them
-                            # If it was a quick block (no details), we probably want to see details now
                             st.session_state.quick_mode = False 
-                            
                             st.rerun()
                             
                     with col_act2:
-                        if st.button("x", key=f"del_{real_idx}", help="削除"):
+                        # Changed to trash icon for clarity
+                        if st.button("🗑", key=f"del_{real_idx}", help="削除"):
                             st.session_state.temp_blocks.pop(real_idx)
-                            # If deleting the one being edited, reset edit state
                             if st.session_state.edit_target_idx == real_idx:
                                 st.session_state.edit_target_idx = None
                             st.rerun()
