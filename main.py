@@ -456,21 +456,9 @@ with tab_record:
                 col_b1, col_b2 = st.columns([3, 1])
                 with col_b1:
                     # Compact view, removed fixed width
-                    st.markdown(f"""
-                        <div style="background-color:#1e293b; border-radius:8px; padding:12px; margin-bottom:8px; border:1px solid #334155;">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span class="brick {css_class}">{b['category']}</span>
-                                    <span style="font-size:1.0em; font-weight:bold; color:#f8fafc;">{b['title']}</span>
-                                    <span style="font-size:0.8em; color:#94a3b8;">({b['count']} block{'s' if b['count'] > 1 else ''})</span>
-                                </div>
-                                <span style="color:#fbbf24; font-size:1.1em; letter-spacing:2px;">{'★' * b.get('rating', 3)}</span>
-                            </div>
-                            
-                            <div style="margin-bottom:8px;">
-                                {' '.join([f'<span style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:4px; font-size:0.75em; border:1px solid #475569;">{t}</span>' for t in b.get('tags', [])])}
-                            </div>
-                            
+                    details_html = ""
+                    if not is_quick:
+                        details_html = f"""
                             <div style="display:grid; grid-template-columns: 1fr; gap:6px; font-size:0.9em; color:#e2e8f0;">
                                 <div style="display:flex; align-items:baseline;">
                                     <span style="min-width:60px; color:#94a3b8; font-weight:bold; font-size:0.85em;">プラン</span>
@@ -489,6 +477,24 @@ with tab_record:
                                     <span style="flex:1; color:#fcd34d; font-weight:500;">{html.escape(b.get('lesson') or 'ー')}</span>
                                 </div>
                             </div>
+                        """
+
+                    st.markdown(f"""
+                        <div style="background-color:#1e293b; border-radius:8px; padding:12px; margin-bottom:8px; border:1px solid #334155;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="brick {css_class}">{b['category']}</span>
+                                    <span style="font-size:1.0em; font-weight:bold; color:#f8fafc;">{b['title']}</span>
+                                    <span style="font-size:0.8em; color:#94a3b8;">({b['count']} block{'s' if b['count'] > 1 else ''})</span>
+                                </div>
+                                <span style="color:#fbbf24; font-size:1.1em; letter-spacing:2px;">{'★' * b.get('rating', 3)}</span>
+                            </div>
+                            
+                            <div style="margin-bottom:8px;">
+                                {' '.join([f'<span style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:4px; font-size:0.75em; border:1px solid #475569;">{t}</span>' for t in b.get('tags', [])])}
+                            </div>
+                            
+                            {details_html}
                         </div>
                     """.replace('\n', '').replace('    ', ''), unsafe_allow_html=True)
                 with col_b2:
